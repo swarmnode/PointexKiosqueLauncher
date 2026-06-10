@@ -1,0 +1,82 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project overview
+
+**PointexKioskLauncher** — an Android (Kotlin + Jetpack Compose) kiosk launcher app. It replaces the device home screen, restricts the device to a curated set of "Pointex"/"Fiducial" apps, and lets an administrator install new Pointex apps from an FTP update server. The app is designed to run as **Device Owner** so it can pin itself via lock-task mode and silently install APKs.
+
+- Namespace / application ID: `com.pointex.kiosklauncher` (`.debug` suffix for debug builds)
+- `compileSdk` 37, `minSdk` 26, `targetSdk` 35, Kotlin 2.3.21, AGP 9.2.1, Compose BOM 2026.05.00
+
+## Build commands
+
+All commands run from the repo root (`C:\Users\filou\Launcher`), using the Gradle wrapper:
+
+```powershell
+# Build debug APK
+.\gradlew.bat assembleDebug
+
+# Build release APK (minified + shrunk resources)
+.\gradlew.bat assembleRelease
+
+# Install debug build on a connected device/emulator
+.\gradlew.bat installDebug
+
+# Lint
+.\gradlew.bat lint
+```
+
+There are currently no unit or instrumented tests in `app/src/test` or `app/src/androidTest`.
+
+### Device Owner provisioning
+
+The kiosk restrictions in `KioskPolicyManager` only take effect once the app is provisioned as Device Owner (no other accounts on the device):
+
+```powershell
+adb shell dpm set-device-owner com.pointex.kiosklauncher.debug/.admin.KioskAdminReceiver
+```
+
+Without Device Owner, all `KioskPolicyManager` calls are safe no-ops (logged warnings), so the UI can still be exercised during development.
+
+## Architecture
+
+### Single-activity, state-driven UI
+
+`MainActivity` (`app/src/main/java/.../MainActivity.kt`) is the only activity (`launchMode="singleTask"`, registered as `HOME`/`LAUNCHER`). On every `onResume()` it calls `KioskPolicyManager.enterLockTask()`, which both pins the activity on first launch and re-locks the kiosk whenever the admin returns from Settings.
+
+`KioskApp` (`ui/KioskApp.kt`) is the root composable and a small state machine over a private `KioskScreen` enum:
+
+- `PIN_SETUP` → `PinSetupScreen` — shown until an admin PIN is configured (`PinRepository.isPinSet`)
+- `HOME` → `HomeScreen` — grid of allowed app tiles; a long-press in the bottom-right corner opens `AdminPinDialog`
+- `FTP_INSTALL` → `FtpInstallScreen` — SFTP-based app installer
+
+The allowed-apps list (`KioskAppRepository.getAllowedApps`) is refreshed on `ON_RESUME` and whenever it changes, `KioskPolicyManager.updateLockTaskPackages()` is called so those packages can be launched without breaking lock-task mode.
+
+Verifying the admin PIN via `AdminPinDialog` calls `KioskPolicyManager.exitLockTask()` (temporarily allowing `com.android.settings` in the lock-task allowlist) and opens system Settings; `enterLockTask()` on the next resume restores the kiosk lockdown.
+
+### Admin/device-policy layer (`admin/`)
+
+- `KioskAdminReceiver` — `DeviceAdminReceiver`; declared in the manifest with `android:permission="BIND_DEVICE_ADMIN"` and `res/xml/device_admin_policies.xml`.
+- `KioskPolicyManager` — wraps all `DevicePolicyManager` calls: lock-task package allowlist, `LOCK_TASK_FEATURE_NONE` (blocks Home/Recents/status bar/global actions), keyguard disable, and user restrictions (`DISALLOW_SAFE_BOOT`, `DISALLOW_FACTORY_RESET`, `DISALLOW_ADD_USER`, `DISALLOW_MOUNT_PHYSICAL_MEDIA`). Every method checks `isDeviceOwnerApp` first and is a no-op otherwise.
+
+### Data layer (`data/`)
+
+- `KioskAppRepository` — queries `PackageManager` for launchable activities and filters to package names containing `pointex` or `fiducial` (case-insensitive). Deliberately does **not** use `MATCH_DEFAULT_ONLY` since some Pointex launcher activities lack `CATEGORY_DEFAULT`.
+- `PointexSftpRepository` — JSch (`com.github.mwiede:jsch`) SFTP client against a configurable host:22 (`/Versions-NF/Android/`). Lists per-app subfolders (picks the most recently modified `.apk`) or top-level `.apk` files, and downloads a selected app. Returns a `FtpResult<T>` (`Success`/`Failure`) with French, user-facing error messages. All calls are blocking — must run off the main thread (`Dispatchers.IO`). `StrictHostKeyChecking` is disabled (no bundled `known_hosts`), so the connection is encrypted but the server's host key isn't pinned. JSch's reflection-based class loading requires the `-keep`/`-dontwarn` rules for `com.jcraft.jsch.**` in `proguard-rules.pro`.
+- `ApkInstaller` — streams a downloaded APK into a `PackageInstaller` session and commits it via a `BroadcastReceiver`/`PendingIntent`. Because the app is Device Owner, both `install()` and `uninstall()` are silent (no confirmation dialog).
+- `SecurePrefs` — internal helper providing cached `EncryptedSharedPreferences` (AES256-GCM master key via `MasterKey`/Android Keystore), shared file `pointex_kiosk_secure_prefs`.
+- `PinRepository` — admin PIN (4 or 6 digits) stored via `SecurePrefs`.
+- `FtpCredentialsRepository` — saved SFTP connection details (`SftpCredentials`: host, username, password) via `SecurePrefs`, reused across `FtpInstallScreen` visits. Defines `DEFAULT_HOST` (`ftp.egcn.fr`) and `DEFAULT_USERNAME` (`tec`), used to pre-fill the connection form on first use.
+- `KioskApp` (data class) — label, package name, activity name, and resolved `Drawable` icon for one allowed app.
+
+### UI layer (`ui/`)
+
+- `HomeScreen` — `FlowRow` grid of app tiles (icon + label); empty state offers "Installer une application Pointex".
+- `FtpInstallScreen` — multi-step flow (`CREDENTIALS` → `LOADING` → `LIST` → `INSTALLING` → `RESULT`) for logging into the SFTP server, picking an app, downloading and installing it. The `CREDENTIALS` step has editable server address / username / password fields, pre-filled from `FtpCredentialsRepository` (or its `DEFAULT_HOST`/`DEFAULT_USERNAME` on first use); a successful connection saves all three. The `LIST` step also shows currently installed Pointex/Fiducial apps (`KioskAppRepository`) with a per-app "Désinstaller" button (confirmation dialog, silent uninstall via `ApkInstaller.uninstall`), so an admin can remove the old version before installing another.
+- `PinSetupScreen` / `AdminPinDialog` / `PinPad` — PIN entry UI, shared keypad/dot components used both for first-run setup and admin unlock.
+- `theme/` — Compose `Color`/`Theme` definitions (`PointexKioskLauncherTheme`).
+
+### UI text language
+
+All user-facing strings (including error messages from `PointexFtpRepository`/`ApkInstaller`) are in **French** — keep new UI copy consistent with this.
