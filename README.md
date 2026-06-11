@@ -1,6 +1,6 @@
 # PointexKioskLauncher
 
-Préparer une tablette ou une caisse Android en mode kiosque Pointex **en 5 minutes**, sans avoir à debloater ni verrouiller l'appareil à la main.
+Préparer une télécommande ou une caisse Android en mode kiosque Pointex **en 5 minutes**, sans avoir à debloater ni verrouiller l'appareil à la main.
 
 ## Le problème
 
