@@ -8,6 +8,7 @@
     <Nullable>enable</Nullable>
     <RootNamespace>PointexProvisioningQr</RootNamespace>
     <AssemblyName>PointexProvisioningQr</AssemblyName>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

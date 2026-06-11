@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- QR finder pattern rings (top-left, top-right, bottom-left) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="
+            M19,19 h24 v24 h-24 z
+            M23,23 h16 v16 h-16 z
+            M65,19 h24 v24 h-24 z
+            M69,23 h16 v16 h-16 z
+            M19,65 h24 v24 h-24 z
+            M23,69 h16 v16 h-16 z" />
+    <!-- Finder pattern center dots -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M27,27 h8 v8 h-8 z
+            M73,27 h8 v8 h-8 z
+            M27,73 h8 v8 h-8 z" />
+    <!-- Data modules -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M65,65 h8 v8 h-8 z
+            M77,65 h8 v8 h-8 z
+            M65,77 h8 v8 h-8 z
+            M77,77 h8 v8 h-8 z" />
+</vector>
