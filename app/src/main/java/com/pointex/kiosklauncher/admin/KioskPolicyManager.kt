@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.UserManager
 import android.util.Log
@@ -162,10 +163,29 @@ object KioskPolicyManager {
      */
     fun enterLockTask(activity: Activity) {
         applyKioskRestrictions(activity)
+        ensureWifiEnabled(activity)
         try {
             activity.startLockTask()
         } catch (e: IllegalArgumentException) {
             Log.e(TAG, "startLockTask failed", e)
+        }
+    }
+
+    /**
+     * Turns Wi-Fi back on if it has been left disabled, so the kiosk keeps
+     * looking for a network to sync licenses/apps over. `setWifiEnabled` is a
+     * no-op for regular apps since API 29, but device owners are exempt.
+     */
+    @Suppress("DEPRECATION")
+    fun ensureWifiEnabled(context: Context) {
+        val wifiManager = context.applicationContext.getSystemService(WifiManager::class.java) ?: return
+        if (!wifiManager.isWifiEnabled) {
+            try {
+                wifiManager.isWifiEnabled = true
+                Log.i(TAG, "Wi-Fi was disabled; re-enabled it")
+            } catch (e: SecurityException) {
+                Log.e(TAG, "Failed to enable Wi-Fi", e)
+            }
         }
     }
 
