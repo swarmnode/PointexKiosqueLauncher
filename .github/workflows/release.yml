@@ -7,7 +7,8 @@ name: Release
 # named `app-release.apk`, then regenerates the Device Owner provisioning
 # QR code (tools/generate_provisioning_qr.py) pointing at the stable
 # `releases/latest/download/app-release.apk` URL and uploads it as
-# `provisioning_qr.png` on the same release.
+# `provisioning_qr.png` on the same release. Also builds and uploads the
+# two QR-display companion apps (PrepaKiosquePointex.apk / .exe).
 on:
   push:
     tags:
@@ -36,7 +37,7 @@ jobs:
           mkdir -p ~/.android
           echo "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" | base64 -d > ~/.android/debug.keystore
 
-      - name: Build release APK
+      - name: Build release APKs
         run: |
           chmod +x ./gradlew
           ./gradlew assembleRelease
@@ -49,6 +50,13 @@ jobs:
             app/build/outputs/apk/release/app-release.apk \
             --title "PointexKioskLauncher ${{ github.ref_name }}" \
             --generate-notes
+
+      - name: Upload QR display APK to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp qr-display-android/build/outputs/apk/release/PrepaKiosquePointex-release.apk PrepaKiosquePointex.apk
+          gh release upload "${{ github.ref_name }}" PrepaKiosquePointex.apk
 
       - uses: actions/setup-python@v5
         with:
@@ -66,3 +74,21 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "${{ github.ref_name }}" provisioning_qr.png
+
+  qr-display-winforms:
+    needs: release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build release
+        run: dotnet build qr-display-winforms -c Release
+
+      - name: Package
+        run: |
+          Compress-Archive -Path qr-display-winforms\bin\Release\net48\PrepaKiosquePointex.exe,qr-display-winforms\bin\Release\net48\PrepaKiosquePointex.exe.config -DestinationPath PrepaKiosquePointex-win.zip
+
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.ref_name }}" PrepaKiosquePointex-win.zip
