@@ -2,6 +2,7 @@ package com.pointex.kiosklauncher.ui
 
 import android.content.Intent
 import android.provider.Settings
+import android.telephony.TelephonyManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Image
@@ -148,7 +149,11 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
             },
             onOpenSimSettings = {
                 showAdminMenu = false
-                openSystemSettings(activity, context, Settings.ACTION_NETWORK_OPERATOR_SETTINGS)
+                if (hasSimCard(context)) {
+                    openSystemSettings(activity, context, Settings.ACTION_NETWORK_OPERATOR_SETTINGS)
+                } else {
+                    Toast.makeText(context, "Aucune carte SIM détectée", Toast.LENGTH_SHORT).show()
+                }
             },
             onManageApps = {
                 showAdminMenu = false
@@ -167,4 +172,16 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
 private fun openSystemSettings(activity: ComponentActivity, context: android.content.Context, action: String) {
     KioskPolicyManager.exitLockTask(activity)
     context.startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+}
+
+/**
+ * True if at least one SIM slot reports a card present. [Settings.ACTION_NETWORK_OPERATOR_SETTINGS]
+ * closes itself instantly when no SIM is inserted, which looks like a broken button.
+ */
+private fun hasSimCard(context: android.content.Context): Boolean {
+    val telephonyManager = context.getSystemService(TelephonyManager::class.java) ?: return false
+    return (0..1).any { slot ->
+        val state = telephonyManager.getSimState(slot)
+        state != TelephonyManager.SIM_STATE_ABSENT && state != TelephonyManager.SIM_STATE_UNKNOWN
+    }
 }
