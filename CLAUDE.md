@@ -76,7 +76,7 @@ Two minimal, no-frills apps just display the current `releases/latest/download/p
 
 The allowed-apps list (`KioskAppRepository.getAllowedApps`) is refreshed on `ON_RESUME` and whenever it changes, `KioskPolicyManager.updateLockTaskPackages()` is called so those packages can be launched without breaking lock-task mode.
 
-Verifying the admin PIN via `AdminPinDialog` opens `AdminMenuDialog`, which lets the administrator either open system Settings or manage Pointex apps (`FTP_INSTALL`). Choosing Settings calls `KioskPolicyManager.exitLockTask()` (temporarily allowing `com.android.settings` in the lock-task allowlist) before launching `Settings.ACTION_SETTINGS`; `enterLockTask()` on the next resume restores the kiosk lockdown.
+Verifying the admin PIN via `AdminPinDialog` opens `AdminMenuDialog`, which lets the administrator open system Settings, Wi-Fi settings (e.g. to configure a static IP), SIM card settings, or manage Pointex apps (`FTP_INSTALL`). The three Settings options share `openSystemSettings()` in `KioskApp.kt`, which calls `KioskPolicyManager.exitLockTask()` (temporarily allowing `com.android.settings` in the lock-task allowlist) before launching the corresponding intent (`Settings.ACTION_SETTINGS`, `ACTION_WIFI_SETTINGS`, or `ACTION_NETWORK_OPERATOR_SETTINGS`); `enterLockTask()` on the next resume restores the kiosk lockdown.
 
 ### Admin/device-policy layer (`admin/`)
 
@@ -98,7 +98,7 @@ Verifying the admin PIN via `AdminPinDialog` opens `AdminMenuDialog`, which lets
 - `HomeScreen` — `FlowRow` grid of app tiles (icon + label); empty state offers "Installer une application Pointex".
 - `FtpInstallScreen` — multi-step flow (`CREDENTIALS` → `LOADING` → `LIST` → `INSTALLING` → `RESULT`) for logging into the SFTP server, picking an app, downloading and installing it. The `CREDENTIALS` step has editable server address / username / password fields, pre-filled from `FtpCredentialsRepository` (or its `DEFAULT_HOST`/`DEFAULT_USERNAME` on first use); a successful connection saves all three. The `LIST` step also shows currently installed Pointex/Fiducial apps (`KioskAppRepository`) with a per-app "Désinstaller" button (confirmation dialog, silent uninstall via `ApkInstaller.uninstall`), so an admin can remove the old version before installing another.
 - `PinSetupScreen` / `AdminPinDialog` / `PinPad` — PIN entry UI, shared keypad/dot components used both for first-run setup and admin unlock.
-- `AdminMenuDialog` — post-PIN menu offering "Ouvrir les Paramètres" or "Gérer les applications Pointex".
+- `AdminMenuDialog` — post-PIN menu offering "Gérer les applications Pointex", "Wi-Fi (adresse IP fixe)", "Carte SIM", or "Ouvrir les Paramètres".
 - `theme/` — Compose `Color`/`Theme` definitions (`PointexKioskLauncherTheme`).
 
 ### UI text language

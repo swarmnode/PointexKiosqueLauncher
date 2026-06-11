@@ -37,10 +37,11 @@ private enum class KioskScreen { PROVISIONING_REQUIRED, PIN_SETUP, HOME, FTP_INS
  * confirmed as Device Owner (`KioskPolicyManager.isDeviceOwner`). Once
  * provisioned, shows [PinSetupScreen] until an administrator PIN exists,
  * then [HomeScreen]. A discreet long-press opens [AdminPinDialog]; once the
- * PIN is verified, [AdminMenuDialog] lets the administrator either open
- * system Settings (lock-task mode is released first) or manage Pointex apps
- * via [FtpInstallScreen]. [activity]'s `onResume` re-applies lock-task mode
- * automatically when the kiosk regains focus.
+ * PIN is verified, [AdminMenuDialog] lets the administrator open system
+ * Settings, Wi-Fi settings (e.g. to set a static IP) or SIM card settings
+ * (lock-task mode is released first via [openSystemSettings]), or manage
+ * Pointex apps via [FtpInstallScreen]. [activity]'s `onResume` re-applies
+ * lock-task mode automatically when the kiosk regains focus.
  */
 @Composable
 fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
@@ -139,10 +140,15 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
             onDismiss = { showAdminMenu = false },
             onOpenSettings = {
                 showAdminMenu = false
-                KioskPolicyManager.exitLockTask(activity)
-                context.startActivity(
-                    Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                )
+                openSystemSettings(activity, context, Settings.ACTION_SETTINGS)
+            },
+            onOpenWifiSettings = {
+                showAdminMenu = false
+                openSystemSettings(activity, context, Settings.ACTION_WIFI_SETTINGS)
+            },
+            onOpenSimSettings = {
+                showAdminMenu = false
+                openSystemSettings(activity, context, Settings.ACTION_NETWORK_OPERATOR_SETTINGS)
             },
             onManageApps = {
                 showAdminMenu = false
@@ -150,4 +156,15 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
             },
         )
     }
+}
+
+/**
+ * Releases lock-task mode (temporarily allowing [com.android.settings] in the
+ * lock-task allowlist, see [KioskPolicyManager.exitLockTask]) and opens the
+ * given Settings screen. [KioskPolicyManager.enterLockTask] re-locks the
+ * kiosk on the next `onResume`.
+ */
+private fun openSystemSettings(activity: ComponentActivity, context: android.content.Context, action: String) {
+    KioskPolicyManager.exitLockTask(activity)
+    context.startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }
