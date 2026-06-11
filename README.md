@@ -8,13 +8,25 @@ Configurer un appareil Android pour qu'il n'affiche que les applications Pointex
 
 ## La solution
 
+### Android 12 et antérieur : QR code (sans PC)
+
 1. Réinitialisation usine de l'appareil.
 2. Sur l'écran d'accueil de l'assistant de configuration, taper 6 fois → le scanner de QR code s'ouvre.
 3. Scanner le QR code de provisioning (mis à jour automatiquement à chaque release, voir [Releases](#releases)).
 4. L'appareil télécharge l'APK, vérifie son empreinte, l'installe et le configure automatiquement en tant que **Device Owner**.
 5. L'application se verrouille (mode kiosque) sur les applications Pointex/Fiducial autorisées — plus rien d'autre n'est accessible.
 
-Aucun PC ni câble nécessaire sur le terrain.
+Aucun câble nécessaire sur le terrain.
+
+### Android 13 et plus récent : provisioning USB
+
+Depuis Android 13, Google bloque le provisioning Device Owner par QR code pour les applications qui ne sont pas sur sa liste blanche de DPC ("Can't set up device / Contact your IT admin"). Sur ces appareils, utiliser `tools/provision.bat` :
+
+1. Réinitialisation usine de l'appareil.
+2. Activer le débogage USB (Réglages → À propos du téléphone → taper 7 fois sur "Numéro de build" pour activer les options développeur, puis Réglages → Options pour les développeurs → Débogage USB).
+3. Brancher l'appareil en USB sur un PC équipé d'[ADB](https://developer.android.com/tools/releases/platform-tools) et de `curl`.
+4. Lancer `tools/provision.bat` : il télécharge la dernière version, l'installe et configure l'appareil en tant que Device Owner.
+5. Au premier lancement de l'application, elle se verrouille (mode kiosque) comme ci-dessus.
 
 ## Afficher le QR code facilement
 
