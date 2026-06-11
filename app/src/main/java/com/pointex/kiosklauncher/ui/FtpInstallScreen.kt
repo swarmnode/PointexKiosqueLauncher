@@ -12,10 +12,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -32,7 +37,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pointex.kiosklauncher.data.ApkInstaller
@@ -68,6 +76,7 @@ fun FtpInstallScreen(
     var host by remember { mutableStateOf(savedCredentials?.host ?: FtpCredentialsRepository.DEFAULT_HOST) }
     var username by remember { mutableStateOf(savedCredentials?.username ?: FtpCredentialsRepository.DEFAULT_USERNAME) }
     var password by remember { mutableStateOf(savedCredentials?.password ?: "") }
+    var passwordVisible by remember { mutableStateOf(false) }
     var step by remember { mutableStateOf(if (savedCredentials != null) FtpStep.LOADING else FtpStep.CREDENTIALS) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var apps by remember { mutableStateOf<List<PointexApp>>(emptyList()) }
@@ -185,7 +194,16 @@ fun FtpInstallScreen(
                 onValueChange = { password = it },
                 label = { Text("Mot de passe") },
                 singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                            contentDescription = if (passwordVisible) "Masquer le mot de passe" else "Afficher le mot de passe",
+                        )
+                    }
+                },
                 modifier = Modifier
                     .widthIn(max = 360.dp)
                     .fillMaxWidth()
