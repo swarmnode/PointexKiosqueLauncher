@@ -84,11 +84,14 @@ object KioskPolicyManager {
             dpm.addPersistentPreferredActivity(admin, homeFilter, ComponentName(context, MainActivity::class.java))
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                // Block Home, Recents, notifications/status bar and system info,
-                // but allow the global actions menu (long-press power) so the
-                // admin can reboot/power off without it falling back to the
-                // digital assistant and exiting the kiosk.
-                dpm.setLockTaskFeatures(admin, DevicePolicyManager.LOCK_TASK_FEATURE_GLOBAL_ACTIONS)
+                // Block Home, Recents and the notification shade, but allow the
+                // global actions menu (long-press power, see above) and the
+                // minimal status bar info (clock, battery, Wi-Fi/4G signal).
+                dpm.setLockTaskFeatures(
+                    admin,
+                    DevicePolicyManager.LOCK_TASK_FEATURE_GLOBAL_ACTIONS or
+                        DevicePolicyManager.LOCK_TASK_FEATURE_SYSTEM_INFO
+                )
             } else {
                 @Suppress("DEPRECATION")
                 dpm.setStatusBarDisabled(admin, true)
