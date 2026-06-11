@@ -5,6 +5,10 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+base {
+    archivesName.set("PrepaKiosquePointex")
+}
+
 android {
     namespace = "com.pointex.provisioningqr"
     compileSdk = 37
