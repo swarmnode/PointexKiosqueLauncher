@@ -10,3 +10,11 @@
 .cxx/
 local.properties
 app/build/
+qr-display-android/build/
+
+# .NET
+qr-display-winforms/bin/
+qr-display-winforms/obj/
+
+# Generated provisioning QR codes (regenerated per release, uploaded as release assets)
+tools/*.png

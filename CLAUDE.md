@@ -8,6 +8,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Namespace / application ID: `com.pointex.kiosklauncher` (`.debug` suffix for debug builds)
 - `compileSdk` 37, `minSdk` 26, `targetSdk` 35, Kotlin 2.3.21, AGP 9.2.1, Compose BOM 2026.05.00
+- Published at `https://github.com/swarmnode/PointexKiosqueLauncher`
+
+This is a multi-module Gradle build (`:app` is the kiosk launcher itself; `:qr-display-android` is a companion app, see below). The `qr-display-winforms/` directory is a separate, independent .NET project (not part of the Gradle build).
 
 ## Build commands
 
@@ -43,13 +46,20 @@ Without Device Owner, all `KioskPolicyManager` calls are safe no-ops (logged war
 
 Field technicians provision devices without adb using Android's QR-code Device Owner flow: factory-reset the device, tap 6 times on the setup wizard's welcome screen to open the QR scanner, and scan a QR code that points the device at the release APK. The device downloads, verifies (SHA-256 checksum) and installs the APK, then sets it as Device Owner automatically — the factory reset also clears any pre-existing Google account and Pointex app installs that would otherwise block this.
 
-Generate the QR code after each release build with `tools/generate_provisioning_qr.py` (requires `pip install "qrcode[pil]"`):
+`.github/workflows/release.yml` automates this for every tag push (`vX.Y.Z`): it builds the signed release APK, publishes a GitHub release with `app-release.apk`, regenerates the QR with `tools/generate_provisioning_qr.py` pointing at the stable `releases/latest/download/app-release.apk` URL, and uploads it as `provisioning_qr.png` on the same release. Because the download URL never changes, only the embedded checksum changes per release — no manual steps needed.
+
+To regenerate manually (requires `pip install "qrcode[pil]"`):
 
 ```powershell
-python tools/generate_provisioning_qr.py app/build/outputs/apk/release/app-release.apk https://updates.example.com/PointexKioskLauncher.apk --wifi-ssid "..." --wifi-password "..."
+python tools/generate_provisioning_qr.py app/build/outputs/apk/release/app-release.apk https://github.com/swarmnode/PointexKiosqueLauncher/releases/latest/download/app-release.apk --wifi-ssid "..." --wifi-password "..."
 ```
 
-Re-run it for every release — the embedded checksum changes whenever the APK changes.
+#### QR-display companion apps
+
+Two minimal, no-frills apps just display the current `releases/latest/download/provisioning_qr.png` image (nothing else) so an admin/technician can show the provisioning QR without opening a browser:
+
+- **`qr-display-android/`** — Gradle module `com.pointex.provisioningqr`, single Compose screen that downloads and shows the QR. Build with `.\gradlew.bat :qr-display-android:assembleRelease`.
+- **`qr-display-winforms/`** — .NET Framework 4.8 WinForms app (`PointexProvisioningQr`), a single form with a `PictureBox` showing the QR. Build with `dotnet build -c Release` from `qr-display-winforms/`.
 
 ## Architecture
 

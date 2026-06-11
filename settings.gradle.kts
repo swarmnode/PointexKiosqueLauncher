@@ -21,3 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "PointexKioskLauncher"
 include(":app")
+include(":qr-display-android")
