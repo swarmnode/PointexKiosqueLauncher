@@ -23,10 +23,6 @@ object FtpCredentialsRepository {
     private const val KEY_USERNAME = "ftp_username"
     private const val KEY_PASSWORD = "ftp_password"
 
-    /** True once SFTP credentials have been saved. */
-    fun isSaved(context: Context): Boolean =
-        SecurePrefs.get(context, PREFS_FILE_NAME).contains(KEY_USERNAME)
-
     /** Saves [host], [username] and [password] for future SFTP connections. */
     fun save(context: Context, host: String, username: String, password: String) {
         SecurePrefs.get(context, PREFS_FILE_NAME).edit()
@@ -43,14 +39,5 @@ object FtpCredentialsRepository {
         val password = prefs.getString(KEY_PASSWORD, null) ?: return null
         val host = prefs.getString(KEY_HOST, null) ?: DEFAULT_HOST
         return SftpCredentials(host, username, password)
-    }
-
-    /** Clears the saved connection details (e.g. after a login failure). */
-    fun clear(context: Context) {
-        SecurePrefs.get(context, PREFS_FILE_NAME).edit()
-            .remove(KEY_HOST)
-            .remove(KEY_USERNAME)
-            .remove(KEY_PASSWORD)
-            .apply()
     }
 }

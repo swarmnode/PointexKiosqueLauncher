@@ -39,6 +39,18 @@ adb shell dpm set-device-owner com.pointex.kiosklauncher.debug/.admin.KioskAdmin
 
 Without Device Owner, all `KioskPolicyManager` calls are safe no-ops (logged warnings), so the UI can still be exercised during development.
 
+#### Field provisioning via QR code (no PC required)
+
+Field technicians provision devices without adb using Android's QR-code Device Owner flow: factory-reset the device, tap 6 times on the setup wizard's welcome screen to open the QR scanner, and scan a QR code that points the device at the release APK. The device downloads, verifies (SHA-256 checksum) and installs the APK, then sets it as Device Owner automatically — the factory reset also clears any pre-existing Google account and Pointex app installs that would otherwise block this.
+
+Generate the QR code after each release build with `tools/generate_provisioning_qr.py` (requires `pip install "qrcode[pil]"`):
+
+```powershell
+python tools/generate_provisioning_qr.py app/build/outputs/apk/release/app-release.apk https://updates.example.com/PointexKioskLauncher.apk --wifi-ssid "..." --wifi-password "..."
+```
+
+Re-run it for every release — the embedded checksum changes whenever the APK changes.
+
 ## Architecture
 
 ### Single-activity, state-driven UI
@@ -47,13 +59,14 @@ Without Device Owner, all `KioskPolicyManager` calls are safe no-ops (logged war
 
 `KioskApp` (`ui/KioskApp.kt`) is the root composable and a small state machine over a private `KioskScreen` enum:
 
+- `PROVISIONING_REQUIRED` → `ProvisioningRequiredScreen` — blocking first-run screen shown when the app is not yet Device Owner (`KioskPolicyManager.isDeviceOwner`) and no PIN is set; "Vérifier à nouveau" re-checks and proceeds to `PIN_SETUP` once provisioned. Debug builds (`BuildConfig.DEBUG`) get an extra "Continuer sans Device Owner" bypass for UI iteration.
 - `PIN_SETUP` → `PinSetupScreen` — shown until an admin PIN is configured (`PinRepository.isPinSet`)
 - `HOME` → `HomeScreen` — grid of allowed app tiles; a long-press in the bottom-right corner opens `AdminPinDialog`
 - `FTP_INSTALL` → `FtpInstallScreen` — SFTP-based app installer
 
 The allowed-apps list (`KioskAppRepository.getAllowedApps`) is refreshed on `ON_RESUME` and whenever it changes, `KioskPolicyManager.updateLockTaskPackages()` is called so those packages can be launched without breaking lock-task mode.
 
-Verifying the admin PIN via `AdminPinDialog` calls `KioskPolicyManager.exitLockTask()` (temporarily allowing `com.android.settings` in the lock-task allowlist) and opens system Settings; `enterLockTask()` on the next resume restores the kiosk lockdown.
+Verifying the admin PIN via `AdminPinDialog` opens `AdminMenuDialog`, which lets the administrator either open system Settings or manage Pointex apps (`FTP_INSTALL`). Choosing Settings calls `KioskPolicyManager.exitLockTask()` (temporarily allowing `com.android.settings` in the lock-task allowlist) before launching `Settings.ACTION_SETTINGS`; `enterLockTask()` on the next resume restores the kiosk lockdown.
 
 ### Admin/device-policy layer (`admin/`)
 
@@ -75,8 +88,9 @@ Verifying the admin PIN via `AdminPinDialog` calls `KioskPolicyManager.exitLockT
 - `HomeScreen` — `FlowRow` grid of app tiles (icon + label); empty state offers "Installer une application Pointex".
 - `FtpInstallScreen` — multi-step flow (`CREDENTIALS` → `LOADING` → `LIST` → `INSTALLING` → `RESULT`) for logging into the SFTP server, picking an app, downloading and installing it. The `CREDENTIALS` step has editable server address / username / password fields, pre-filled from `FtpCredentialsRepository` (or its `DEFAULT_HOST`/`DEFAULT_USERNAME` on first use); a successful connection saves all three. The `LIST` step also shows currently installed Pointex/Fiducial apps (`KioskAppRepository`) with a per-app "Désinstaller" button (confirmation dialog, silent uninstall via `ApkInstaller.uninstall`), so an admin can remove the old version before installing another.
 - `PinSetupScreen` / `AdminPinDialog` / `PinPad` — PIN entry UI, shared keypad/dot components used both for first-run setup and admin unlock.
+- `AdminMenuDialog` — post-PIN menu offering "Ouvrir les Paramètres" or "Gérer les applications Pointex".
 - `theme/` — Compose `Color`/`Theme` definitions (`PointexKioskLauncherTheme`).
 
 ### UI text language
 
-All user-facing strings (including error messages from `PointexFtpRepository`/`ApkInstaller`) are in **French** — keep new UI copy consistent with this.
+All user-facing strings (including error messages from `PointexSftpRepository`/`ApkInstaller`) are in **French** — keep new UI copy consistent with this.

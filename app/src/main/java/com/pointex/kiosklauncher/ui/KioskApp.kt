@@ -2,6 +2,7 @@ package com.pointex.kiosklauncher.ui
 
 import android.content.Intent
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,16 +28,18 @@ import com.pointex.kiosklauncher.admin.KioskPolicyManager
 import com.pointex.kiosklauncher.data.KioskAppRepository
 import com.pointex.kiosklauncher.data.PinRepository
 
-private enum class KioskScreen { PIN_SETUP, HOME, FTP_INSTALL }
+private enum class KioskScreen { PROVISIONING_REQUIRED, PIN_SETUP, HOME, FTP_INSTALL }
 
 /**
  * Single-screen, state-driven root composable.
  *
- * Shows [PinSetupScreen] until an administrator PIN exists, then
- * [HomeScreen]. A discreet long-press opens [AdminPinDialog]; once the PIN
- * is verified, [AdminMenuDialog] lets the administrator either open system
- * Settings (lock-task mode is released first) or manage Pointex apps via
- * [FtpInstallScreen]. [activity]'s `onResume` re-applies lock-task mode
+ * On first run, [ProvisioningRequiredScreen] blocks setup until the app is
+ * confirmed as Device Owner (`KioskPolicyManager.isDeviceOwner`). Once
+ * provisioned, shows [PinSetupScreen] until an administrator PIN exists,
+ * then [HomeScreen]. A discreet long-press opens [AdminPinDialog]; once the
+ * PIN is verified, [AdminMenuDialog] lets the administrator either open
+ * system Settings (lock-task mode is released first) or manage Pointex apps
+ * via [FtpInstallScreen]. [activity]'s `onResume` re-applies lock-task mode
  * automatically when the kiosk regains focus.
  */
 @Composable
@@ -44,7 +47,15 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
     var screen by remember {
-        mutableStateOf(if (PinRepository.isPinSet(context)) KioskScreen.HOME else KioskScreen.PIN_SETUP)
+        mutableStateOf(
+            when {
+                !KioskPolicyManager.isDeviceOwner(context) && !PinRepository.isPinSet(context) ->
+                    KioskScreen.PROVISIONING_REQUIRED
+
+                PinRepository.isPinSet(context) -> KioskScreen.HOME
+                else -> KioskScreen.PIN_SETUP
+            }
+        )
     }
     var showAdminDialog by remember { mutableStateOf(false) }
     var showAdminMenu by remember { mutableStateOf(false) }
@@ -78,6 +89,17 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
         contentColor = MaterialTheme.colorScheme.onBackground,
     ) {
         when (screen) {
+            KioskScreen.PROVISIONING_REQUIRED -> ProvisioningRequiredScreen(
+                onRetry = {
+                    if (KioskPolicyManager.isDeviceOwner(context)) {
+                        screen = KioskScreen.PIN_SETUP
+                    } else {
+                        Toast.makeText(context, "Toujours non configuré en mode kiosque", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onContinueAnyway = { screen = KioskScreen.PIN_SETUP },
+            )
+
             KioskScreen.PIN_SETUP -> PinSetupScreen(
                 onPinConfirmed = { pin ->
                     PinRepository.setPin(context, pin)

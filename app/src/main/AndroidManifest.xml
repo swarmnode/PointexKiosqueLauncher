@@ -7,8 +7,6 @@
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
 
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-
     <!-- Required to download Pointex apps over FTP and silently install them
          (silent install is granted because this app is the device owner). -->
     <uses-permission android:name="android.permission.INTERNET" />
