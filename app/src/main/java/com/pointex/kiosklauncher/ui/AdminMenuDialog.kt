@@ -21,6 +21,7 @@ fun AdminMenuDialog(
     onOpenWifiSettings: () -> Unit,
     onOpenSimSettings: () -> Unit,
     onManageApps: () -> Unit,
+    onRebootRequested: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     AlertDialog(
@@ -40,6 +41,9 @@ fun AdminMenuDialog(
                 }
                 TextButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
                     Text("Ouvrir les Paramètres")
+                }
+                TextButton(onClick = onRebootRequested, modifier = Modifier.fillMaxWidth()) {
+                    Text("Redémarrer l'appareil")
                 }
             }
         },

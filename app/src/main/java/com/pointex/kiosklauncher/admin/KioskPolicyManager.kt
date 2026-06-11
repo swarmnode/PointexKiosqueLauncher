@@ -4,10 +4,13 @@ import android.app.Activity
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.UserManager
 import android.util.Log
+import com.pointex.kiosklauncher.MainActivity
 
 /**
  * Wraps the [DevicePolicyManager] calls needed to run PointexKioskLauncher
@@ -70,6 +73,15 @@ object KioskPolicyManager {
 
         try {
             dpm.setLockTaskPackages(admin, lockTaskPackages(context))
+
+            // Make this app the persistent default launcher so it comes back to
+            // the front automatically after a reboot, even if another launcher
+            // (e.g. the device's stock launcher) was previously selected as Home.
+            val homeFilter = IntentFilter(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                addCategory(Intent.CATEGORY_DEFAULT)
+            }
+            dpm.addPersistentPreferredActivity(admin, homeFilter, ComponentName(context, MainActivity::class.java))
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 // LOCK_TASK_FEATURE_NONE blocks Home, Recents, notifications/
@@ -188,6 +200,29 @@ object KioskPolicyManager {
             } catch (e: SecurityException) {
                 Log.e(TAG, "Failed to enable Wi-Fi", e)
             }
+        }
+    }
+
+    /**
+     * Reboots the device immediately via [DevicePolicyManager.reboot]. Only
+     * works for a Device Owner; returns false (with a logged reason) if the
+     * reboot couldn't be requested, e.g. during initial setup or an active call.
+     */
+    fun rebootDevice(context: Context): Boolean {
+        val dpm = devicePolicyManager(context)
+        val admin = adminComponent(context)
+
+        if (!dpm.isDeviceOwnerApp(context.packageName)) {
+            Log.w(TAG, "App is not Device Owner; cannot reboot device")
+            return false
+        }
+
+        return try {
+            dpm.reboot(admin)
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to reboot device", e)
+            false
         }
     }
 
