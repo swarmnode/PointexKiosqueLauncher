@@ -45,11 +45,31 @@ object ApkInstaller {
 
                     val receiver = object : BroadcastReceiver() {
                         override fun onReceive(receiverContext: Context, intent: Intent) {
-                            receiverContext.unregisterReceiver(this)
                             val status = intent.getIntExtra(
                                 PackageInstaller.EXTRA_STATUS,
                                 PackageInstaller.STATUS_FAILURE
                             )
+
+                            // On a non-device-owner device, the system requires
+                            // user confirmation: relaunch the confirmation intent
+                            // and keep listening for the final SUCCESS/FAILURE
+                            // broadcast it triggers.
+                            if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
+                                val confirmIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
+                                } else {
+                                    @Suppress("DEPRECATION")
+                                    intent.getParcelableExtra(Intent.EXTRA_INTENT)
+                                }
+                                if (confirmIntent != null) {
+                                    receiverContext.startActivity(
+                                        confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    )
+                                    return
+                                }
+                            }
+
+                            receiverContext.unregisterReceiver(this)
                             val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
                             if (continuation.isActive) {
                                 continuation.resume(
