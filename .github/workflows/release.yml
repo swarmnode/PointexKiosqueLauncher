@@ -63,11 +63,15 @@ jobs:
           python-version: '3.x'
 
       - name: Generate provisioning QR code
+        env:
+          WIFI_SSID: ${{ secrets.WIFI_SSID }}
+          WIFI_PASSWORD: ${{ secrets.WIFI_PASSWORD }}
         run: |
           pip install "qrcode[pil]"
           python tools/generate_provisioning_qr.py \
             app/build/outputs/apk/release/app-release.apk \
             "https://github.com/${{ github.repository }}/releases/latest/download/app-release.apk" \
+            --wifi-ssid "$WIFI_SSID" --wifi-password "$WIFI_PASSWORD" \
             --output provisioning_qr.png
 
       - name: Upload QR code to release
