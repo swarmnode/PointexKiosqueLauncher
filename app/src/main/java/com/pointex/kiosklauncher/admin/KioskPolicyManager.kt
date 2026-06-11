@@ -84,10 +84,11 @@ object KioskPolicyManager {
             dpm.addPersistentPreferredActivity(admin, homeFilter, ComponentName(context, MainActivity::class.java))
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                // LOCK_TASK_FEATURE_NONE blocks Home, Recents, notifications/
-                // status bar, system info and the global actions menu while
-                // lock-task mode is active.
-                dpm.setLockTaskFeatures(admin, DevicePolicyManager.LOCK_TASK_FEATURE_NONE)
+                // Block Home, Recents, notifications/status bar and system info,
+                // but allow the global actions menu (long-press power) so the
+                // admin can reboot/power off without it falling back to the
+                // digital assistant and exiting the kiosk.
+                dpm.setLockTaskFeatures(admin, DevicePolicyManager.LOCK_TASK_FEATURE_GLOBAL_ACTIONS)
             } else {
                 @Suppress("DEPRECATION")
                 dpm.setStatusBarDisabled(admin, true)
@@ -200,29 +201,6 @@ object KioskPolicyManager {
             } catch (e: SecurityException) {
                 Log.e(TAG, "Failed to enable Wi-Fi", e)
             }
-        }
-    }
-
-    /**
-     * Reboots the device immediately via [DevicePolicyManager.reboot]. Only
-     * works for a Device Owner; returns false (with a logged reason) if the
-     * reboot couldn't be requested, e.g. during initial setup or an active call.
-     */
-    fun rebootDevice(context: Context): Boolean {
-        val dpm = devicePolicyManager(context)
-        val admin = adminComponent(context)
-
-        if (!dpm.isDeviceOwnerApp(context.packageName)) {
-            Log.w(TAG, "App is not Device Owner; cannot reboot device")
-            return false
-        }
-
-        return try {
-            dpm.reboot(admin)
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to reboot device", e)
-            false
         }
     }
 

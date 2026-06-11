@@ -7,11 +7,8 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -64,7 +61,6 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
     }
     var showAdminDialog by remember { mutableStateOf(false) }
     var showAdminMenu by remember { mutableStateOf(false) }
-    var showRebootConfirm by remember { mutableStateOf(false) }
     var apps by remember { mutableStateOf(KioskAppRepository.getAllowedApps(context)) }
 
     LaunchedEffect(apps) {
@@ -162,33 +158,6 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
             onManageApps = {
                 showAdminMenu = false
                 screen = KioskScreen.FTP_INSTALL
-            },
-            onRebootRequested = {
-                showAdminMenu = false
-                showRebootConfirm = true
-            },
-        )
-    }
-
-    if (showRebootConfirm) {
-        AlertDialog(
-            onDismissRequest = { showRebootConfirm = false },
-            title = { Text("Redémarrer l'appareil") },
-            text = { Text("Voulez-vous vraiment redémarrer le terminal maintenant ?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showRebootConfirm = false
-                    if (!KioskPolicyManager.rebootDevice(context)) {
-                        Toast.makeText(context, "Redémarrage impossible pour le moment", Toast.LENGTH_SHORT).show()
-                    }
-                }) {
-                    Text("Redémarrer")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showRebootConfirm = false }) {
-                    Text("Annuler")
-                }
             },
         )
     }
