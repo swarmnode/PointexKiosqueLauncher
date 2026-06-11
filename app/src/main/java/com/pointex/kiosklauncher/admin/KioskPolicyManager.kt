@@ -122,7 +122,9 @@ object KioskPolicyManager {
                 dpm.setStatusBarDisabled(admin, false)
             }
 
-            dpm.setKeyguardDisabled(admin, false)
+            // Keep the keyguard disabled even outside lock-task mode: this device
+            // has no Android lock screen credential configured, so re-enabling it
+            // here just shows the lock/notification screen on top of Settings.
 
             for (restriction in USER_RESTRICTIONS) {
                 dpm.clearUserRestriction(admin, restriction)
