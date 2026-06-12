@@ -1,5 +1,6 @@
 package com.pointex.kiosklauncher.data
 
+import android.util.Log
 import com.jcraft.jsch.ChannelSftp
 import com.jcraft.jsch.JSch
 import com.jcraft.jsch.JSchException
@@ -26,6 +27,7 @@ sealed class FtpResult<out T> {
  */
 object PointexSftpRepository {
 
+    private const val TAG = "PointexSftpRepository"
     private const val PORT = 22
     private const val BASE_PATH = "Versions-NF/Android/"
     private const val CONNECT_TIMEOUT_MS = 10_000
@@ -105,7 +107,10 @@ object PointexSftpRepository {
                 channel.disconnect()
             }
         } catch (e: Exception) {
-            FtpResult.Failure(e.message ?: "Erreur de connexion SFTP")
+            // e.message is often a raw, English JSch error — log it for
+            // diagnosis but show the user a French message instead.
+            Log.e(TAG, "SFTP operation failed", e)
+            FtpResult.Failure("Erreur de communication avec le serveur SFTP")
         } finally {
             session.disconnect()
         }

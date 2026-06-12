@@ -74,10 +74,16 @@ fun AdminPinDialog(
                         }
                     },
                     onConfirm = {
-                        if (PinRepository.verifyPin(context, pin)) {
+                        val lockoutMs = PinRepository.lockoutRemainingMs(context)
+                        if (lockoutMs > 0) {
+                            error = lockoutMessage(lockoutMs)
+                            pin = ""
+                        } else if (PinRepository.verifyPin(context, pin)) {
                             onPinVerified()
                         } else {
-                            error = "Code incorrect"
+                            // This failure may have just started a lockout window.
+                            val newLockoutMs = PinRepository.lockoutRemainingMs(context)
+                            error = if (newLockoutMs > 0) lockoutMessage(newLockoutMs) else "Code incorrect"
                             pin = ""
                         }
                     },
@@ -89,4 +95,9 @@ fun AdminPinDialog(
             }
         }
     }
+}
+
+private fun lockoutMessage(remainingMs: Long): String {
+    val seconds = (remainingMs + 999) / 1000
+    return "Trop de tentatives. Réessayez dans $seconds s"
 }

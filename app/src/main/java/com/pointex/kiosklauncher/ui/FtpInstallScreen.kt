@@ -110,22 +110,24 @@ fun FtpInstallScreen(
     suspend fun downloadAndInstall(app: PointexApp) {
         step = FtpStep.INSTALLING
         val destFile = File(context.cacheDir, "pointex_install.apk")
-        when (val downloadResult = withContext(Dispatchers.IO) {
-            PointexSftpRepository.download(host, username, password, app, destFile)
-        }) {
-            is FtpResult.Success -> {
-                val (success, message) = ApkInstaller.install(context, destFile)
-                destFile.delete()
-                resultSuccess = success
-                resultMessage = message
-                step = FtpStep.RESULT
-            }
+        try {
+            when (val downloadResult = withContext(Dispatchers.IO) {
+                PointexSftpRepository.download(host, username, password, app, destFile)
+            }) {
+                is FtpResult.Success -> {
+                    val (success, message) = ApkInstaller.install(context, destFile)
+                    resultSuccess = success
+                    resultMessage = message
+                }
 
-            is FtpResult.Failure -> {
-                resultSuccess = false
-                resultMessage = downloadResult.message
-                step = FtpStep.RESULT
+                is FtpResult.Failure -> {
+                    resultSuccess = false
+                    resultMessage = downloadResult.message
+                }
             }
+            step = FtpStep.RESULT
+        } finally {
+            destFile.delete()
         }
     }
 

@@ -1,22 +1,28 @@
 package com.pointex.kiosklauncher.data
 
+import android.app.Activity
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageInstaller
 import android.os.Build
 import androidx.core.content.ContextCompat
+import com.pointex.kiosklauncher.admin.KioskPolicyManager
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import java.io.FileInputStream
 import kotlin.coroutines.resume
 
 /**
- * Installs APK files using [PackageInstaller]. Because Pointex Kiosk Launcher
- * is the device owner, the install session is committed without showing the
- * usual "Do you want to install this app?" confirmation dialog.
+ * Installs and uninstalls APK files using [PackageInstaller]. When Pointex
+ * Kiosk Launcher is the device owner, both operations are silent (no
+ * confirmation dialog). On a non-device-owner device (limited kiosk mode),
+ * the system replies with `STATUS_PENDING_USER_ACTION` instead: the kiosk is
+ * unpinned and the system confirmation activity is launched (see
+ * [launchUserConfirmation]).
  */
 object ApkInstaller {
 
@@ -55,16 +61,9 @@ object ApkInstaller {
                             // and keep listening for the final SUCCESS/FAILURE
                             // broadcast it triggers.
                             if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
-                                val confirmIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
-                                } else {
-                                    @Suppress("DEPRECATION")
-                                    intent.getParcelableExtra(Intent.EXTRA_INTENT)
-                                }
+                                val confirmIntent = confirmIntentOf(intent)
                                 if (confirmIntent != null) {
-                                    receiverContext.startActivity(
-                                        confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    )
+                                    launchUserConfirmation(context, confirmIntent)
                                     return
                                 }
                             }
@@ -90,6 +89,10 @@ object ApkInstaller {
                         ContextCompat.RECEIVER_NOT_EXPORTED
                     )
 
+                    continuation.invokeOnCancellation {
+                        runCatching { context.unregisterReceiver(receiver) }
+                    }
+
                     val flags = PendingIntent.FLAG_UPDATE_CURRENT or
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0
                     val pendingIntent = PendingIntent.getBroadcast(
@@ -109,10 +112,11 @@ object ApkInstaller {
         }
 
     /**
-     * Uninstalls [packageName] via [PackageInstaller]. Because Pointex Kiosk
-     * Launcher is the device owner, this is silent (no confirmation dialog).
-     * Resumes with `true` and a French success message on success, or `false`
-     * and an error message otherwise. Must be called from a coroutine.
+     * Uninstalls [packageName] via [PackageInstaller]. Silent (no confirmation
+     * dialog) when the app is device owner; otherwise the system confirmation
+     * flow is handled like in [install]. Resumes with `true` and a French
+     * success message on success, or `false` and an error message otherwise.
+     * Must be called from a coroutine.
      */
     suspend fun uninstall(context: Context, packageName: String): Pair<Boolean, String> =
         suspendCancellableCoroutine { continuation ->
@@ -120,11 +124,21 @@ object ApkInstaller {
 
             val receiver = object : BroadcastReceiver() {
                 override fun onReceive(receiverContext: Context, intent: Intent) {
-                    receiverContext.unregisterReceiver(this)
                     val status = intent.getIntExtra(
                         PackageInstaller.EXTRA_STATUS,
                         PackageInstaller.STATUS_FAILURE
                     )
+
+                    // Same non-device-owner confirmation flow as install().
+                    if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
+                        val confirmIntent = confirmIntentOf(intent)
+                        if (confirmIntent != null) {
+                            launchUserConfirmation(context, confirmIntent)
+                            return
+                        }
+                    }
+
+                    receiverContext.unregisterReceiver(this)
                     val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
                     if (continuation.isActive) {
                         continuation.resume(
@@ -145,6 +159,10 @@ object ApkInstaller {
                 ContextCompat.RECEIVER_NOT_EXPORTED
             )
 
+            continuation.invokeOnCancellation {
+                runCatching { context.unregisterReceiver(receiver) }
+            }
+
             val flags = PendingIntent.FLAG_UPDATE_CURRENT or
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0
             val pendingIntent = PendingIntent.getBroadcast(
@@ -163,4 +181,30 @@ object ApkInstaller {
                 }
             }
         }
+
+    /** Extracts the system confirmation intent from a `STATUS_PENDING_USER_ACTION` broadcast. */
+    private fun confirmIntentOf(intent: Intent): Intent? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra(Intent.EXTRA_INTENT)
+        }
+
+    /**
+     * Launches the system install/uninstall confirmation activity. In limited
+     * kiosk mode the app is pinned via screen pinning, which blocks launching
+     * other apps' activities, so the kiosk is unpinned first; MainActivity
+     * re-pins on its next resume, once the confirmation dialog is dismissed.
+     */
+    private fun launchUserConfirmation(context: Context, confirmIntent: Intent) {
+        context.findActivity()?.let { KioskPolicyManager.exitLockTask(it) }
+        context.startActivity(confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
+    private tailrec fun Context.findActivity(): Activity? = when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
+    }
 }

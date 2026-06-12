@@ -19,13 +19,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.pointex.kiosklauncher.BuildConfig
 
 /**
- * Blocking first-run screen shown when the app has not been provisioned as
- * Device Owner (e.g. a Google account was still present on the device, or
- * the QR-code provisioning step was skipped). Setup cannot continue until
- * [onRetry] confirms `KioskPolicyManager.isDeviceOwner()` is true.
+ * First-run screen shown when the app has not been provisioned as Device
+ * Owner (e.g. a Google account was still present on the device, the
+ * QR-code provisioning step was skipped, or another app already holds
+ * Device Owner on this device). [onRetry] re-checks
+ * `KioskPolicyManager.isDeviceOwner()`, while [onContinueAnyway] proceeds
+ * in a degraded "limited kiosk" mode (screen pinning instead of full
+ * lock-task lockdown) for devices that can never become Device Owner.
  */
 @Composable
 fun ProvisioningRequiredScreen(
@@ -56,7 +58,8 @@ fun ProvisioningRequiredScreen(
 
         Text(
             text = "Cet appareil n'est pas configuré en mode kiosque (Device Owner manquant). " +
-                "L'application ne peut pas démarrer tant que cette configuration n'est pas effectuée.",
+                "Certaines protections (verrouillage complet, barre de statut, Wi-Fi/Paramètres) " +
+                "ne pourront pas être appliquées tant que cette configuration n'est pas effectuée.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -66,7 +69,7 @@ fun ProvisioningRequiredScreen(
         )
 
         Text(
-            text = "Pour corriger :\n" +
+            text = "Pour une configuration complète :\n" +
                 "1. Réinitialisez l'appareil aux paramètres d'usine.\n" +
                 "2. Lors de la configuration initiale, scannez le QR code de provisioning " +
                 "(voir fiche technicien).",
@@ -81,10 +84,21 @@ fun ProvisioningRequiredScreen(
             Text("Vérifier à nouveau")
         }
 
-        if (BuildConfig.DEBUG) {
-            TextButton(onClick = onContinueAnyway, modifier = Modifier.padding(top = 8.dp)) {
-                Text("Continuer sans Device Owner (debug)")
-            }
+        TextButton(onClick = onContinueAnyway, modifier = Modifier.padding(top = 8.dp)) {
+            Text("Configurer en mode kiosque limité")
         }
+
+        Text(
+            text = "Mode limité : l'application est simplement épinglée à l'écran (un retrait " +
+                "reste possible via Retour + Récents), les installations demandent une " +
+                "confirmation et les protections complètes du mode Device Owner ne " +
+                "s'appliquent pas.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .widthIn(max = 480.dp),
+        )
     }
 }
