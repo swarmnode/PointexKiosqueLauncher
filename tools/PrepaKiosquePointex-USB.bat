@@ -10,37 +10,51 @@ rem   - Reinitialisation usine
 rem   - Options developpeur activees (Reglages > A propos > taper 7x sur "Numero de build")
 rem   - Debogage USB active, cable USB branche, autoriser l'ordinateur
 rem
-rem Prerequis sur le PC : adb (Android platform-tools) et curl dans le PATH.
+rem Prerequis sur le PC : aucun si le kit est complet. adb est utilise depuis
+rem le dossier de ce script s'il s'y trouve (adb.exe, AdbWinApi.dll,
+rem AdbWinUsbApi.dll, libwinpthread-1.dll), sinon depuis le PATH. De meme,
+rem l'APK PointexKiosqueLauncher.apk pose a cote du script est installe
+rem directement (kit hors-ligne) ; sinon la derniere version est telechargee
+rem avec curl.
 
-set "APK_URL=https://github.com/swarmnode/PointexKiosqueLauncher/releases/latest/download/app-release.apk"
-set "APK_FILE=%TEMP%\app-release.apk"
+set "APK_URL=https://github.com/swarmnode/PointexKiosqueLauncher/releases/latest/download/PointexKiosqueLauncher.apk"
 set "ADMIN_COMPONENT=com.pointex.kiosklauncher/com.pointex.kiosklauncher.admin.KioskAdminReceiver"
 
-where adb >nul 2>nul
+set "ADB=%~dp0adb.exe"
+if not exist "%ADB%" set "ADB=adb"
+
+"%ADB%" version >nul 2>nul
 if errorlevel 1 (
-    echo [ERREUR] adb introuvable. Installez Android platform-tools et ajoutez-le au PATH.
+    echo [ERREUR] adb introuvable. Placez adb.exe et ses DLL a cote de ce script
+    echo ou installez Android platform-tools et ajoutez-le au PATH.
     pause
     exit /b 1
 )
 
 echo Verification de l'appareil...
-adb get-state >nul 2>nul
+"%ADB%" get-state >nul 2>nul
 if errorlevel 1 (
     echo [ERREUR] Aucun appareil detecte. Verifiez le cable USB et le debogage USB.
     pause
     exit /b 1
 )
 
-echo Telechargement de la derniere version de PointexKioskLauncher...
-curl -fL -o "%APK_FILE%" "%APK_URL%"
-if errorlevel 1 (
-    echo [ERREUR] Echec du telechargement.
-    pause
-    exit /b 1
+if exist "%~dp0PointexKiosqueLauncher.apk" (
+    echo Utilisation de l'APK fourni avec le kit.
+    set "APK_FILE=%~dp0PointexKiosqueLauncher.apk"
+) else (
+    echo Telechargement de la derniere version de PointexKioskLauncher...
+    set "APK_FILE=%TEMP%\PointexKiosqueLauncher.apk"
+    curl -fL -o "%TEMP%\PointexKiosqueLauncher.apk" "%APK_URL%"
+    if errorlevel 1 (
+        echo [ERREUR] Echec du telechargement.
+        pause
+        exit /b 1
+    )
 )
 
 echo Installation de l'application...
-adb install -r "%APK_FILE%"
+"%ADB%" install -r "%APK_FILE%"
 if errorlevel 1 (
     echo [ERREUR] Echec de l'installation.
     pause
@@ -48,7 +62,7 @@ if errorlevel 1 (
 )
 
 echo Configuration en tant que proprietaire de l'appareil (Device Owner)...
-adb shell dpm set-device-owner %ADMIN_COMPONENT%
+"%ADB%" shell dpm set-device-owner %ADMIN_COMPONENT%
 if errorlevel 1 (
     echo.
     echo [ERREUR] Echec de la configuration Device Owner.

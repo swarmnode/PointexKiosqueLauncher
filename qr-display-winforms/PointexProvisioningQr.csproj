@@ -9,6 +9,10 @@
     <RootNamespace>PointexProvisioningQr</RootNamespace>
     <AssemblyName>PrepaKiosquePointex</AssemblyName>
     <ApplicationIcon>icon.ico</ApplicationIcon>
+    <!-- Pas de PrepaKiosquePointex.exe.config genere : il ne contiendrait que
+         le bloc supportedRuntime, inutile sur Windows 10/11 ou .NET 4.8 est
+         preinstalle. L'app se distribue ainsi en un seul fichier exe. -->
+    <GenerateSupportedRuntime>false</GenerateSupportedRuntime>
   </PropertyGroup>
 
   <ItemGroup>

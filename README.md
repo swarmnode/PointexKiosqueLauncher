@@ -20,12 +20,12 @@ Aucun câble nécessaire sur le terrain.
 
 ### Android 13 et plus récent : provisioning USB
 
-Depuis Android 13, Google bloque le provisioning Device Owner par QR code pour les applications qui ne sont pas sur sa liste blanche de DPC ("Can't set up device / Contact your IT admin"). Sur ces appareils, utiliser `tools/provision.bat` :
+Depuis Android 13, Google bloque le provisioning Device Owner par QR code pour les applications qui ne sont pas sur sa liste blanche de DPC ("Can't set up device / Contact your IT admin"). Sur ces appareils, utiliser `tools/PrepaKiosquePointex-USB.bat` :
 
 1. Réinitialisation usine de l'appareil.
 2. Activer le débogage USB (Réglages → À propos du téléphone → taper 7 fois sur "Numéro de build" pour activer les options développeur, puis Réglages → Options pour les développeurs → Débogage USB).
-3. Brancher l'appareil en USB sur un PC équipé d'[ADB](https://developer.android.com/tools/releases/platform-tools) et de `curl`.
-4. Lancer `tools/provision.bat` : il télécharge la dernière version, l'installe et configure l'appareil en tant que Device Owner.
+3. Brancher l'appareil en USB sur un PC équipé de `curl`. Pour ADB, deux options : copier `adb.exe` + `AdbWinApi.dll` + `AdbWinUsbApi.dll` + `libwinpthread-1.dll` (depuis [platform-tools](https://developer.android.com/tools/releases/platform-tools)) dans le même dossier que le script — kit autonome, rien à installer — ou avoir [ADB](https://developer.android.com/tools/releases/platform-tools) dans le PATH.
+4. Lancer `tools/PrepaKiosquePointex-USB.bat` : il télécharge la dernière version, l'installe et configure l'appareil en tant que Device Owner.
 5. Au premier lancement de l'application, elle se verrouille (mode kiosque) comme ci-dessus.
 
 ## Afficher le QR code facilement
@@ -39,9 +39,9 @@ Deux petites applications **PrepaKiosquePointex** affichent uniquement le QR cod
 
 Chaque release (`vX.Y.Z`) contient :
 
-- `app-release.apk` — l'application kiosque
+- `PointexKiosqueLauncher.apk` — l'application kiosque (aussi publiée sous l'ancien nom `app-release.apk` le temps que les QR imprimés avant le renommage disparaissent)
 - `provisioning_qr.png` — le QR code de provisioning à jour pour cette release
-- `PrepaKiosquePointex.apk` / `PrepaKiosquePointex-win.zip` — les afficheurs de QR code
+- `PrepaKiosquePointex.apk` / `PrepaKiosquePointex.exe` — les afficheurs de QR code
 
 ## Administration
 

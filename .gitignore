@@ -18,3 +18,14 @@ qr-display-winforms/obj/
 
 # Generated provisioning QR codes (regenerated per release, uploaded as release assets)
 tools/*.png
+
+# Portable technician kit for PrepaKiosquePointex-USB.bat: adb (copied
+# locally from Android SDK platform-tools; the script falls back to the PATH
+# when absent), release artifacts (app-release.apk is installed offline by
+# the script when present), the generated notice PDF and the bundled kit zip
+tools/*.exe
+tools/*.dll
+tools/NOTICE.txt
+tools/*.apk
+tools/*.zip
+tools/*.pdf

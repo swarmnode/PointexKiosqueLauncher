@@ -4,10 +4,12 @@ name: Release
 #   git tag v1.0.3 && git push origin v1.0.3
 #
 # Builds the signed release APK, publishes it as a GitHub Release asset
-# named `app-release.apk`, then regenerates the Device Owner provisioning
-# QR code (tools/generate_provisioning_qr.py) pointing at the stable
-# `releases/latest/download/app-release.apk` URL and uploads it as
-# `provisioning_qr.png` on the same release. Also builds and uploads the
+# named `PointexKiosqueLauncher.apk` (plus a transitional `app-release.apk`
+# copy so provisioning QR codes generated before the rename keep working),
+# then regenerates the Device Owner provisioning QR code
+# (tools/generate_provisioning_qr.py) pointing at the stable
+# `releases/latest/download/PointexKiosqueLauncher.apk` URL and uploads it
+# as `provisioning_qr.png` on the same release. Also builds and uploads the
 # two QR-display companion apps (PrepaKiosquePointex.apk / .exe).
 on:
   push:
@@ -46,7 +48,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          cp app/build/outputs/apk/release/app-release.apk PointexKiosqueLauncher.apk
+          # app-release.apk is uploaded as a second, identical asset so QR
+          # codes printed before the rename (they embed the old
+          # `latest/download/app-release.apk` URL) keep provisioning.
+          # Drop it once no old QR is in circulation.
           gh release create "${{ github.ref_name }}" \
+            PointexKiosqueLauncher.apk \
             app/build/outputs/apk/release/app-release.apk \
             --title "PointexKioskLauncher ${{ github.ref_name }}" \
             --generate-notes
@@ -70,7 +78,7 @@ jobs:
           pip install "qrcode[pil]"
           python tools/generate_provisioning_qr.py \
             app/build/outputs/apk/release/app-release.apk \
-            "https://github.com/${{ github.repository }}/releases/latest/download/app-release.apk" \
+            "https://github.com/${{ github.repository }}/releases/latest/download/PointexKiosqueLauncher.apk" \
             --wifi-ssid "$WIFI_SSID" --wifi-password "$WIFI_PASSWORD" \
             --output provisioning_qr.png
 
@@ -88,11 +96,7 @@ jobs:
       - name: Build release
         run: dotnet build qr-display-winforms -c Release
 
-      - name: Package
-        run: |
-          Compress-Archive -Path qr-display-winforms\bin\Release\net48\PrepaKiosquePointex.exe,qr-display-winforms\bin\Release\net48\PrepaKiosquePointex.exe.config -DestinationPath PrepaKiosquePointex-win.zip
-
       - name: Upload to release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.ref_name }}" PrepaKiosquePointex-win.zip
+        run: gh release upload "${{ github.ref_name }}" qr-display-winforms\bin\Release\net48\PrepaKiosquePointex.exe
