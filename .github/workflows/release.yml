@@ -10,7 +10,10 @@ name: Release
 # (tools/generate_provisioning_qr.py) pointing at the stable
 # `releases/latest/download/PointexKiosqueLauncher.apk` URL and uploads it
 # as `provisioning_qr.png` on the same release. Also builds and uploads the
-# two QR-display companion apps (PrepaKiosquePointex.apk / .exe).
+# two QR-display companion apps (PrepaKiosquePointex.apk / .exe) and the
+# self-contained technician USB kit (PrepaKiosquePointex-Kit.zip: USB
+# provisioning script, portable adb from Google's official platform-tools,
+# both APKs, the QR-display exe and the generated PDF notice).
 on:
   push:
     tags:
@@ -100,3 +103,29 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "${{ github.ref_name }}" qr-display-winforms\bin\Release\net48\PrepaKiosquePointex.exe
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Assemble technician USB kit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # APKs published by the `release` job (this job depends on it)
+          gh release download "${{ github.ref_name }}" --pattern PointexKiosqueLauncher.apk --pattern PrepaKiosquePointex.apk --dir kit
+          # Portable adb: the 4 files PrepaKiosquePointex-USB.bat needs next
+          # to it, plus Google's license NOTICE, from the official archive
+          curl.exe -fL -o platform-tools.zip https://dl.google.com/android/repository/platform-tools-latest-windows.zip
+          Expand-Archive platform-tools.zip -DestinationPath pt
+          Copy-Item pt\platform-tools\adb.exe,pt\platform-tools\AdbWinApi.dll,pt\platform-tools\AdbWinUsbApi.dll,pt\platform-tools\libwinpthread-1.dll,pt\platform-tools\NOTICE.txt kit
+          Copy-Item tools\PrepaKiosquePointex-USB.bat kit
+          Copy-Item qr-display-winforms\bin\Release\net48\PrepaKiosquePointex.exe kit
+          pip install fpdf2
+          python tools/generate_kit_doc.py kit/Notice-PrepaKiosquePointex.pdf
+          Compress-Archive -Path kit\* -DestinationPath PrepaKiosquePointex-Kit.zip
+
+      - name: Upload kit to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.ref_name }}" PrepaKiosquePointex-Kit.zip

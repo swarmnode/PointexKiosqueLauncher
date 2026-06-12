@@ -42,6 +42,7 @@ Chaque release (`vX.Y.Z`) contient :
 - `PointexKiosqueLauncher.apk` — l'application kiosque (aussi publiée sous l'ancien nom `app-release.apk` le temps que les QR imprimés avant le renommage disparaissent)
 - `provisioning_qr.png` — le QR code de provisioning à jour pour cette release
 - `PrepaKiosquePointex.apk` / `PrepaKiosquePointex.exe` — les afficheurs de QR code
+- `PrepaKiosquePointex-Kit.zip` — le kit clé USB complet du technicien : script de provisioning USB, adb portable, les deux APK, l'afficheur Windows et la notice PDF
 
 ## Administration
 
