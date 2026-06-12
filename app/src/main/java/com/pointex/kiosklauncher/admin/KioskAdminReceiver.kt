@@ -8,10 +8,12 @@ import android.util.Log
 /**
  * Device admin receiver for PointexKioskLauncher.
  *
- * The application must be provisioned as Device Owner (see
- * `adb shell dpm set-device-owner ...`) for the strict lock-task
- * restrictions configured in [com.pointex.kiosklauncher.admin.KioskPolicyManager]
- * to take effect.
+ * When the app is Device Owner (see `adb shell dpm set-device-owner ...`)
+ * this enables the strict lock-task restrictions in
+ * [com.pointex.kiosklauncher.admin.KioskPolicyManager]. In limited kiosk
+ * mode the same receiver is activated as a plain device admin (not owner)
+ * so the app cannot be uninstalled through the normal paths until the admin
+ * is deactivated — [onDisableRequested] warns the user before that happens.
  */
 class KioskAdminReceiver : DeviceAdminReceiver() {
 
@@ -19,6 +21,11 @@ class KioskAdminReceiver : DeviceAdminReceiver() {
         super.onEnabled(context, intent)
         Log.i(TAG, "Device admin enabled")
     }
+
+    override fun onDisableRequested(context: Context, intent: Intent): CharSequence? =
+        "Désactiver l'administrateur retire la protection du mode kiosque et " +
+            "permet de désinstaller l'application Pointex. À ne faire que pour " +
+            "la maintenance, sur instruction d'un technicien."
 
     override fun onDisabled(context: Context, intent: Intent) {
         super.onDisabled(context, intent)

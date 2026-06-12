@@ -69,6 +69,16 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
         ActivityResultContracts.StartActivityForResult()
     ) { /* Refusal is fine: the technician can still set the default launcher in Settings. */ }
 
+    fun requestHomeRole() {
+        homeRoleRequestIntent(context)?.let { homeRoleLauncher.launch(it) }
+    }
+
+    // Limited-mode setup launches the device-admin activation screen first
+    // (blocks uninstall), then chains to the default-launcher role request.
+    val adminLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { requestHomeRole() }
+
 
 
     LaunchedEffect(apps) {
@@ -114,11 +124,11 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
                     // Persisted: granting the HOME role recreates the app,
                     // which must not land back on the provisioning screen.
                     KioskModeRepository.setLimitedModeChosen(context)
-                    homeRoleRequestIntent(context)?.let { intent ->
-                        // Screen pinning would block the system role dialog;
-                        // unpin first, the next resume re-pins.
-                        KioskPolicyManager.exitLockTask(activity)
-                        homeRoleLauncher.launch(intent)
+                    val adminIntent = KioskPolicyManager.addAdminIntent(context)
+                    if (adminIntent != null) {
+                        adminLauncher.launch(adminIntent) // requestHomeRole() on return
+                    } else {
+                        requestHomeRole()
                     }
                     screen = KioskScreen.HOME
                 },

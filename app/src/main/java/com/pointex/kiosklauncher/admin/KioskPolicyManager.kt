@@ -55,6 +55,32 @@ object KioskPolicyManager {
         devicePolicyManager(context).isDeviceOwnerApp(context.packageName)
 
     /**
+     * True if [KioskAdminReceiver] is an active device admin (always implied
+     * by Device Owner). While active, the app cannot be uninstalled through
+     * the normal paths until the admin is deactivated.
+     */
+    fun isAdminActive(context: Context): Boolean =
+        devicePolicyManager(context).isAdminActive(adminComponent(context))
+
+    /**
+     * System intent that asks the user to activate [KioskAdminReceiver] as a
+     * device admin, used in limited kiosk mode to block uninstall (Device
+     * Owner devices already have the admin active). Returns null if it is
+     * already active.
+     */
+    fun addAdminIntent(context: Context): Intent? {
+        if (isAdminActive(context)) return null
+        return Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+            putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent(context))
+            putExtra(
+                DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                "Activez l'administrateur pour empêcher la désinstallation de " +
+                    "l'application Pointex en mode kiosque.",
+            )
+        }
+    }
+
+    /**
      * Applies the strict kiosk restrictions: pins this app as the only
      * lock-task package, disables the status bar / Home / Recents / Settings
      * shortcuts, disables the keyguard and blocks factory reset, safe boot,

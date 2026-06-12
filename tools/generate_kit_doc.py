@@ -115,7 +115,9 @@ def build(output: Path) -> None:
     pdf.step(1, "Sur l'écran « Configuration requise », touchez « Définir un code de verrouillage de l'appareil » et créez un code connu du technicien uniquement : sortir du kiosque exigera ce code.")
     pdf.step(2, "IMPORTANT - toujours dans Sécurité, touchez la roue dentée à côté de « Verrouillage de l'écran » puis réglez « Verrouiller automatiquement » sur « Jamais » et désactivez le verrouillage instantané par le bouton Marche/Arrêt. Sans cela, le code serait demandé à chaque réveil de l'écran ; ainsi il n'est demandé que pour sortir du kiosque (et une fois après un redémarrage complet).")
     pdf.step(3, "Touchez « Configurer en mode kiosque limité ».")
-    pdf.step(4, "Acceptez la demande « Définir comme application d'accueil par défaut » : le bouton Accueil ramènera toujours au kiosque.")
+    pdf.step(4, "Acceptez la demande « Activer cette appli d'administration de l'appareil » : elle empêche la désinstallation de l'application Pointex par les voies normales.")
+    pdf.step(5, "Acceptez la demande « Définir comme application d'accueil par défaut » : le bouton Accueil ramènera toujours au kiosque.")
+    pdf.para("Pour désinstaller l'application lors d'une maintenance : Réglages > Sécurité > Applications d'administration de l'appareil, désactivez « Pointex » (un avertissement s'affiche), puis désinstallez normalement.")
     pdf.para("En mode limité, les installations d'applications demandent une confirmation à l'écran. La protection contre l'accès au système repose sur le code de verrouillage défini à l'étape 1.")
 
     pdf.section("Après la mise en service")
