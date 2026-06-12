@@ -1,10 +1,14 @@
 package com.pointex.kiosklauncher.ui
 
+import android.app.role.RoleManager
 import android.content.Intent
+import android.os.Build
 import android.provider.Settings
 import android.telephony.TelephonyManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -63,6 +67,10 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
     var showAdminMenu by remember { mutableStateOf(false) }
     var apps by remember { mutableStateOf(KioskAppRepository.getAllowedApps(context)) }
 
+    val homeRoleLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { /* Refusal is fine: the technician can still set the default launcher in Settings. */ }
+
     LaunchedEffect(apps) {
         KioskPolicyManager.updateLockTaskPackages(context, apps.map { it.packageName })
     }
@@ -99,7 +107,18 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
                         Toast.makeText(context, "Toujours non configuré en mode kiosque", Toast.LENGTH_SHORT).show()
                     }
                 },
-                onContinueAnyway = { screen = KioskScreen.PIN_SETUP },
+                onOpenSecuritySettings = {
+                    openSystemSettings(activity, context, Settings.ACTION_SECURITY_SETTINGS)
+                },
+                onContinueAnyway = {
+                    homeRoleRequestIntent(context)?.let { intent ->
+                        // Screen pinning would block the system role dialog;
+                        // unpin first, the next resume re-pins.
+                        KioskPolicyManager.exitLockTask(activity)
+                        homeRoleLauncher.launch(intent)
+                    }
+                    screen = KioskScreen.PIN_SETUP
+                },
             )
 
             KioskScreen.PIN_SETUP -> PinSetupScreen(
@@ -172,6 +191,22 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
 private fun openSystemSettings(activity: ComponentActivity, context: android.content.Context, action: String) {
     KioskPolicyManager.exitLockTask(activity)
     context.startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+}
+
+/**
+ * Builds the system dialog intent requesting the default-launcher (HOME)
+ * role, or null when it cannot or need not be requested (pre-Android 10,
+ * role unavailable, or already held). Used when entering limited kiosk mode,
+ * where Device Owner's `addPersistentPreferredActivity` is a no-op: holding
+ * the HOME role keeps the Home button returning to the kiosk instead.
+ */
+private fun homeRoleRequestIntent(context: android.content.Context): Intent? {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
+    val roleManager = context.getSystemService(RoleManager::class.java) ?: return null
+    if (!roleManager.isRoleAvailable(RoleManager.ROLE_HOME) || roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+        return null
+    }
+    return roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME)
 }
 
 /**

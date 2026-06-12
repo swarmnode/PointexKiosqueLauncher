@@ -28,10 +28,16 @@ import androidx.compose.ui.unit.dp
  * `KioskPolicyManager.isDeviceOwner()`, while [onContinueAnyway] proceeds
  * in a degraded "limited kiosk" mode (screen pinning instead of full
  * lock-task lockdown) for devices that can never become Device Owner.
+ *
+ * In limited mode, screen pinning is only a real barrier if a device lock
+ * credential is configured (escaping the pin then lands on the keyguard),
+ * so [onOpenSecuritySettings] lets the technician set one before
+ * continuing.
  */
 @Composable
 fun ProvisioningRequiredScreen(
     onRetry: () -> Unit,
+    onOpenSecuritySettings: () -> Unit,
     onContinueAnyway: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -84,15 +90,20 @@ fun ProvisioningRequiredScreen(
             Text("Vérifier à nouveau")
         }
 
-        TextButton(onClick = onContinueAnyway, modifier = Modifier.padding(top = 8.dp)) {
+        TextButton(onClick = onOpenSecuritySettings, modifier = Modifier.padding(top = 8.dp)) {
+            Text("Définir un code de verrouillage de l'appareil")
+        }
+
+        TextButton(onClick = onContinueAnyway) {
             Text("Configurer en mode kiosque limité")
         }
 
         Text(
-            text = "Mode limité : l'application est simplement épinglée à l'écran (un retrait " +
-                "reste possible via Retour + Récents), les installations demandent une " +
-                "confirmation et les protections complètes du mode Device Owner ne " +
-                "s'appliquent pas.",
+            text = "Mode limité : l'application est simplement épinglée à l'écran, les " +
+                "installations demandent une confirmation et les protections complètes du " +
+                "mode Device Owner ne s'appliquent pas. Définissez d'abord un code de " +
+                "verrouillage (connu du technicien uniquement) : sortir de l'épinglage " +
+                "exigera alors ce code.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
