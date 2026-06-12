@@ -13,8 +13,8 @@ android {
         applicationId = "com.pointex.kiosklauncher"
         minSdk = 26
         targetSdk = 35
-        versionCode = 12
-        versionName = "1.0.$versionCode"
+        versionCode = 13
+        versionName = "1.2.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
