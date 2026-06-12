@@ -32,22 +32,21 @@ import com.pointex.kiosklauncher.R
 import com.pointex.kiosklauncher.admin.KioskPolicyManager
 import com.pointex.kiosklauncher.data.KioskAppRepository
 import com.pointex.kiosklauncher.data.KioskModeRepository
-import com.pointex.kiosklauncher.data.PinRepository
 
-private enum class KioskScreen { PROVISIONING_REQUIRED, PIN_SETUP, HOME, FTP_INSTALL }
+private enum class KioskScreen { PROVISIONING_REQUIRED, HOME, FTP_INSTALL }
 
 /**
  * Single-screen, state-driven root composable.
  *
  * On first run, [ProvisioningRequiredScreen] blocks setup until the app is
- * confirmed as Device Owner (`KioskPolicyManager.isDeviceOwner`). Once
- * provisioned, shows [PinSetupScreen] until an administrator PIN exists,
- * then [HomeScreen]. A discreet long-press opens [AdminPinDialog]; once the
- * PIN is verified, [AdminMenuDialog] lets the administrator open system
- * Settings, Wi-Fi settings (e.g. to set a static IP) or SIM card settings
- * (lock-task mode is released first via [openSystemSettings]), or manage
- * Pointex apps via [FtpInstallScreen]. [activity]'s `onResume` re-applies
- * lock-task mode automatically when the kiosk regains focus.
+ * confirmed as Device Owner (`KioskPolicyManager.isDeviceOwner`) or the
+ * administrator opts into limited kiosk mode, then shows [HomeScreen]. A
+ * discreet long-press opens [AdminPinDialog] (challenge-response code, no
+ * stored PIN); once verified, [AdminMenuDialog] lets the administrator open
+ * system Settings, Wi-Fi settings (e.g. to set a static IP) or SIM card
+ * settings (lock-task mode is released first via [openSystemSettings]), or
+ * manage Pointex apps via [FtpInstallScreen]. [activity]'s `onResume`
+ * re-applies lock-task mode automatically when the kiosk regains focus.
  */
 @Composable
 fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
@@ -55,14 +54,10 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
 
     var screen by remember {
         mutableStateOf(
-            when {
-                PinRepository.isPinSet(context) -> KioskScreen.HOME
-
-                !KioskPolicyManager.isDeviceOwner(context) &&
-                    !KioskModeRepository.isLimitedModeChosen(context) ->
-                    KioskScreen.PROVISIONING_REQUIRED
-
-                else -> KioskScreen.PIN_SETUP
+            if (KioskPolicyManager.isDeviceOwner(context) || KioskModeRepository.isLimitedModeChosen(context)) {
+                KioskScreen.HOME
+            } else {
+                KioskScreen.PROVISIONING_REQUIRED
             }
         )
     }
@@ -73,6 +68,8 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
     val homeRoleLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { /* Refusal is fine: the technician can still set the default launcher in Settings. */ }
+
+
 
     LaunchedEffect(apps) {
         KioskPolicyManager.updateLockTaskPackages(context, apps.map { it.packageName })
@@ -105,7 +102,7 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
             KioskScreen.PROVISIONING_REQUIRED -> ProvisioningRequiredScreen(
                 onRetry = {
                     if (KioskPolicyManager.isDeviceOwner(context)) {
-                        screen = KioskScreen.PIN_SETUP
+                        screen = KioskScreen.HOME
                     } else {
                         Toast.makeText(context, "Toujours non configuré en mode kiosque", Toast.LENGTH_SHORT).show()
                     }
@@ -123,30 +120,13 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
                         KioskPolicyManager.exitLockTask(activity)
                         homeRoleLauncher.launch(intent)
                     }
-                    screen = KioskScreen.PIN_SETUP
-                },
-            )
-
-            KioskScreen.PIN_SETUP -> PinSetupScreen(
-                onPinConfirmed = { pin ->
-                    PinRepository.setPin(context, pin)
                     screen = KioskScreen.HOME
                 },
             )
 
             KioskScreen.HOME -> HomeScreen(
                 apps = apps,
-                onAppClick = { app ->
-                    // In limited kiosk mode (no Device Owner), screen pinning
-                    // blocks the launched app's own internal navigation
-                    // ("Lock Task Mode violation"), so unpin first; the next
-                    // resume of the kiosk re-pins. As Device Owner the target
-                    // package is allowlisted and no unpin is needed.
-                    if (!KioskPolicyManager.isDeviceOwner(context)) {
-                        KioskPolicyManager.exitLockTask(activity)
-                    }
-                    context.startActivity(KioskAppRepository.launchIntentFor(app))
-                },
+                onAppClick = { app -> context.startActivity(KioskAppRepository.launchIntentFor(app)) },
                 onAdminRequested = { showAdminDialog = true },
                 onInstallRequested = { screen = KioskScreen.FTP_INSTALL },
             )

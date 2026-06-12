@@ -29,14 +29,14 @@ import androidx.compose.ui.unit.dp
 /** Maximum PIN length supported by [PinDots] and [PinKeypad]. */
 const val PIN_MAX_LENGTH = 6
 
-/** Row of dots showing how many digits of [pinLength] (max [PIN_MAX_LENGTH]) have been entered. */
+/** Row of [totalDots] dots showing how many digits ([pinLength]) have been entered. */
 @Composable
-fun PinDots(pinLength: Int, modifier: Modifier = Modifier) {
+fun PinDots(pinLength: Int, modifier: Modifier = Modifier, totalDots: Int = PIN_MAX_LENGTH) {
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        repeat(PIN_MAX_LENGTH) { index ->
+        repeat(totalDots) { index ->
             val filled = index < pinLength
             Box(
                 modifier = Modifier

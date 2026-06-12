@@ -17,13 +17,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import com.pointex.kiosklauncher.data.PinRepository
+import androidx.compose.ui.unit.sp
+import com.pointex.kiosklauncher.data.AdminCodeRepository
 
 /**
- * PIN-entry dialog used to unlock administrator access. Calls
- * [onPinVerified] when the entered PIN matches [PinRepository], otherwise
- * shows an error and clears the entry.
+ * Challenge-response dialog used to unlock administrator access: displays a
+ * random 5-digit challenge ([AdminCodeRepository.newChallenge]) and calls
+ * [onPinVerified] when the entered 3-digit response solves it. A wrong
+ * answer shows an error and generates a fresh challenge.
  */
 @Composable
 fun AdminPinDialog(
@@ -32,10 +33,11 @@ fun AdminPinDialog(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    var challenge by remember { mutableStateOf(AdminCodeRepository.newChallenge()) }
     var pin by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
 
-    Dialog(onDismissRequest = onDismiss) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = modifier.widthIn(max = 360.dp),
             shape = MaterialTheme.shapes.extraLarge,
@@ -51,19 +53,32 @@ fun AdminPinDialog(
                     fontWeight = FontWeight.Bold,
                 )
 
-                PinPadTitle(
-                    text = error ?: "Entrez le code PIN",
-                    isError = error != null,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),
+                Text(
+                    text = challenge,
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 8.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 16.dp),
                 )
 
-                PinDots(pinLength = pin.length, modifier = Modifier.padding(bottom = 24.dp))
+                PinPadTitle(
+                    text = error ?: "Entrez le code de réponse",
+                    isError = error != null,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
+                )
+
+                PinDots(
+                    pinLength = pin.length,
+                    totalDots = AdminCodeRepository.RESPONSE_LENGTH,
+                    modifier = Modifier.padding(bottom = 24.dp),
+                )
 
                 PinKeypad(
-                    confirmEnabled = pin.length == 4 || pin.length == 6,
+                    confirmEnabled = pin.length == AdminCodeRepository.RESPONSE_LENGTH,
                     onDigit = { digit ->
                         error = null
-                        if (pin.length < PIN_MAX_LENGTH) {
+                        if (pin.length < AdminCodeRepository.RESPONSE_LENGTH) {
                             pin += digit
                         }
                     },
@@ -74,17 +89,18 @@ fun AdminPinDialog(
                         }
                     },
                     onConfirm = {
-                        val lockoutMs = PinRepository.lockoutRemainingMs(context)
+                        val lockoutMs = AdminCodeRepository.lockoutRemainingMs(context)
                         if (lockoutMs > 0) {
                             error = lockoutMessage(lockoutMs)
                             pin = ""
-                        } else if (PinRepository.verifyPin(context, pin)) {
+                        } else if (AdminCodeRepository.verify(context, challenge, pin)) {
                             onPinVerified()
                         } else {
                             // This failure may have just started a lockout window.
-                            val newLockoutMs = PinRepository.lockoutRemainingMs(context)
+                            val newLockoutMs = AdminCodeRepository.lockoutRemainingMs(context)
                             error = if (newLockoutMs > 0) lockoutMessage(newLockoutMs) else "Code incorrect"
                             pin = ""
+                            challenge = AdminCodeRepository.newChallenge()
                         }
                     },
                 )

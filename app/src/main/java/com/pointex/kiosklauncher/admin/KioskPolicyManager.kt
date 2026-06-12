@@ -175,13 +175,22 @@ object KioskPolicyManager {
     }
 
     /**
-     * Applies [applyKioskRestrictions] and pins [activity] via
-     * `startLockTask()`. Safe to call even if the app is not Device Owner
-     * (it simply won't pin the activity).
+     * Applies [applyKioskRestrictions] and, as Device Owner, pins [activity]
+     * via `startLockTask()` (silent lock-task lockdown).
+     *
+     * In limited kiosk mode (not Device Owner) pinning is deliberately NOT
+     * used: `startLockTask()` would only screen-pin the kiosk home screen
+     * (the allowed app is launched unpinned anyway, see the launch flow), so
+     * it adds no real protection while forcing Android's confirmation dialog
+     * on every re-pin. Limited mode relies instead on being the default
+     * launcher (`ROLE_HOME`) plus the device lock credential.
      */
     fun enterLockTask(activity: Activity) {
         applyKioskRestrictions(activity)
         ensureWifiEnabled(activity)
+        if (!isDeviceOwner(activity)) {
+            return
+        }
         try {
             activity.startLockTask()
         } catch (e: IllegalArgumentException) {
@@ -212,18 +221,20 @@ object KioskPolicyManager {
      * `stopLockTask()`, allowing temporary admin access. Temporarily adds
      * the Settings app to the lock-task allowlist so it can be opened from
      * a Device Owner-pinned Home task; [enterLockTask] removes it again on
-     * the next resume.
+     * the next resume. No-op in limited mode (nothing is ever pinned).
      */
     fun exitLockTask(activity: Activity) {
         val dpm = devicePolicyManager(activity)
         val admin = adminComponent(activity)
 
-        if (dpm.isDeviceOwnerApp(activity.packageName)) {
-            try {
-                dpm.setLockTaskPackages(admin, lockTaskPackages(activity, SETTINGS_PACKAGE))
-            } catch (e: SecurityException) {
-                Log.e(TAG, "Failed to allow Settings during admin unlock", e)
-            }
+        if (!dpm.isDeviceOwnerApp(activity.packageName)) {
+            return
+        }
+
+        try {
+            dpm.setLockTaskPackages(admin, lockTaskPackages(activity, SETTINGS_PACKAGE))
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Failed to allow Settings during admin unlock", e)
         }
 
         try {

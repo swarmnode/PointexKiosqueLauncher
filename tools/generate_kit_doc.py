@@ -116,13 +116,13 @@ def build(output: Path) -> None:
     pdf.step(2, "IMPORTANT - toujours dans Sécurité, touchez la roue dentée à côté de « Verrouillage de l'écran » puis réglez « Verrouiller automatiquement » sur « Jamais » et désactivez le verrouillage instantané par le bouton Marche/Arrêt. Sans cela, le code serait demandé à chaque réveil de l'écran ; ainsi il n'est demandé que pour sortir du kiosque (et une fois après un redémarrage complet).")
     pdf.step(3, "Touchez « Configurer en mode kiosque limité ».")
     pdf.step(4, "Acceptez la demande « Définir comme application d'accueil par défaut » : le bouton Accueil ramènera toujours au kiosque.")
-    pdf.para("En mode limité : les installations d'applications demandent une confirmation à l'écran, et au retour sur l'accueil du kiosque, Android demande de confirmer l'épinglage (« OK ») - c'est normal, ce mode ne permet pas l'épinglage silencieux.")
+    pdf.para("En mode limité, les installations d'applications demandent une confirmation à l'écran. La protection contre l'accès au système repose sur le code de verrouillage défini à l'étape 1.")
 
     pdf.section("Après la mise en service")
-    pdf.step(1, "Au premier lancement, définissez le code PIN administrateur (4 ou 6 chiffres).")
-    pdf.step(2, "Installez les applications Pointex : bouton « Installer une application Pointex » (serveur SFTP, identifiants pré-remplis).")
-    pdf.step(3, "Accès administrateur ensuite : appui long dans le coin inférieur droit de l'écran d'accueil, puis code PIN. Le menu permet de gérer les applications, le Wi-Fi (IP fixe), la carte SIM et les Paramètres.")
-    pdf.para("Après 5 codes PIN erronés, la saisie est bloquée 30 secondes.")
+    pdf.step(1, "Installez les applications Pointex : bouton « Installer une application Pointex » (serveur SFTP, identifiants pré-remplis).")
+    pdf.step(2, "Accès administrateur : appui long dans le coin inférieur droit de l'écran d'accueil. L'écran affiche un nombre à 5 chiffres ; saisissez le code de réponse correspondant, calculé selon la règle interne (communiquée séparément aux techniciens). Le menu permet de gérer les applications, le Wi-Fi (IP fixe), la carte SIM et les Paramètres.")
+    pdf.para("Après 5 codes erronés, la saisie est bloquée 30 secondes.")
+    pdf.para("Au démarrage de l'appareil, si une seule application Pointex est installée, elle se lance automatiquement (une fois par démarrage : revenir à l'accueil du kiosque reste possible).")
 
     pdf.section("Dépannage")
     pdf.bullet("« adb introuvable » : les fichiers adb.exe et les 3 DLL doivent être dans le même dossier que le script.")

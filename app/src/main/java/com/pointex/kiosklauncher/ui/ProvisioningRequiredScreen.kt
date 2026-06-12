@@ -26,12 +26,12 @@ import androidx.compose.ui.unit.dp
  * QR-code provisioning step was skipped, or another app already holds
  * Device Owner on this device). [onRetry] re-checks
  * `KioskPolicyManager.isDeviceOwner()`, while [onContinueAnyway] proceeds
- * in a degraded "limited kiosk" mode (screen pinning instead of full
- * lock-task lockdown) for devices that can never become Device Owner.
+ * in a degraded "limited kiosk" mode for devices that can never become
+ * Device Owner: the app is the default launcher (so Home returns to the
+ * kiosk) but the full lock-task lockdown is unavailable.
  *
- * In limited mode, screen pinning is only a real barrier if a device lock
- * credential is configured (escaping the pin then lands on the keyguard),
- * so [onOpenSecuritySettings] lets the technician set one before
+ * In limited mode the real anti-tampering barrier is the device lock
+ * credential, so [onOpenSecuritySettings] lets the technician set one before
  * continuing.
  */
 @Composable
@@ -99,11 +99,11 @@ fun ProvisioningRequiredScreen(
         }
 
         Text(
-            text = "Mode limité : l'application est simplement épinglée à l'écran, les " +
-                "installations demandent une confirmation et les protections complètes du " +
-                "mode Device Owner ne s'appliquent pas. Définissez d'abord un code de " +
-                "verrouillage (connu du technicien uniquement) : sortir de l'épinglage " +
-                "exigera alors ce code.",
+            text = "Mode limité : l'application reste l'écran d'accueil par défaut (le bouton " +
+                "Accueil y ramène toujours) mais les protections complètes du mode Device " +
+                "Owner ne s'appliquent pas, et les installations demandent une confirmation. " +
+                "Définissez d'abord un code de verrouillage (connu du technicien uniquement) " +
+                "pour protéger l'accès au système.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
