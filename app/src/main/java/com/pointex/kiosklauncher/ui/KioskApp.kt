@@ -218,8 +218,13 @@ private fun accessGuardLabel(scope: WatchdogRepository.Scope): String = when (sc
  * lock-task allowlist, see [KioskPolicyManager.exitLockTask]) and opens the
  * given Settings screen. [KioskPolicyManager.enterLockTask] re-locks the
  * kiosk on the next `onResume`.
+ *
+ * The admin already authenticated via the code to reach this menu, so the
+ * access watchdog is marked unlocked: the Settings screen opened here is not
+ * re-challenged. The gate re-arms when the kiosk regains the foreground.
  */
 private fun openSystemSettings(activity: ComponentActivity, context: android.content.Context, action: String) {
+    WatchdogRepository.temporarilyUnlocked = true
     KioskPolicyManager.exitLockTask(activity)
     context.startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }
