@@ -10,6 +10,12 @@
     <!-- Required to download Pointex apps over FTP and silently install them
          (silent install is granted because this app is the device owner). -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Lets the app request package uninstall. As Device Owner uninstall is
+         silent; in limited mode this permission makes PackageInstaller.uninstall
+         return STATUS_PENDING_USER_ACTION (the system confirmation dialog)
+         instead of failing with a SecurityException. -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- Required to turn Wi-Fi back on automatically (device owner only,
