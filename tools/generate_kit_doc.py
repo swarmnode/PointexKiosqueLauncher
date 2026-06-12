@@ -119,6 +119,7 @@ def build(output: Path) -> None:
     pdf.step(5, "Acceptez la demande « Définir comme application d'accueil par défaut » : le bouton Accueil ramènera toujours au kiosque.")
     pdf.para("Pour désinstaller l'application lors d'une maintenance : Réglages > Sécurité > Applications d'administration de l'appareil, désactivez « Pointex » (un avertissement s'affiche), puis désinstallez normalement.")
     pdf.para("En mode limité, les installations d'applications demandent une confirmation à l'écran. La protection contre l'accès au système repose sur le code de verrouillage défini à l'étape 1.")
+    pdf.step(6, "Optionnel - protection d'accès renforcée : dans le menu administrateur, « Activer le service de protection » (accordez l'accessibilité à Pointex dans la liste), puis réglez « Protection d'accès » sur « Paramètres seulement » ou « toutes les apps ». Toute application protégée ouverte exigera alors le code administrateur.")
 
     pdf.section("Après la mise en service")
     pdf.step(1, "Installez les applications Pointex : bouton « Installer une application Pointex » (serveur SFTP, identifiants pré-remplis).")

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Pointex Kiosk Launcher</string>
+    <string name="watchdog_accessibility_description">Protège l\'accès aux paramètres et aux autres applications en mode kiosque : demande le code administrateur lorsqu\'une application non autorisée est ouverte.</string>
 </resources>

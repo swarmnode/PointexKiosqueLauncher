@@ -21,6 +21,9 @@ fun AdminMenuDialog(
     onOpenWifiSettings: () -> Unit,
     onOpenSimSettings: () -> Unit,
     onManageApps: () -> Unit,
+    accessGuardLabel: String,
+    onCycleAccessGuard: () -> Unit,
+    onEnableAccessGuard: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     AlertDialog(
@@ -40,6 +43,12 @@ fun AdminMenuDialog(
                 }
                 TextButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
                     Text("Ouvrir les Paramètres")
+                }
+                TextButton(onClick = onCycleAccessGuard, modifier = Modifier.fillMaxWidth()) {
+                    Text("Protection d'accès : $accessGuardLabel")
+                }
+                TextButton(onClick = onEnableAccessGuard, modifier = Modifier.fillMaxWidth()) {
+                    Text("Activer le service de protection")
                 }
             }
         },

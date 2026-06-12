@@ -32,6 +32,7 @@ import com.pointex.kiosklauncher.R
 import com.pointex.kiosklauncher.admin.KioskPolicyManager
 import com.pointex.kiosklauncher.data.KioskAppRepository
 import com.pointex.kiosklauncher.data.KioskModeRepository
+import com.pointex.kiosklauncher.data.WatchdogRepository
 
 private enum class KioskScreen { PROVISIONING_REQUIRED, HOME, FTP_INSTALL }
 
@@ -63,6 +64,7 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
     }
     var showAdminDialog by remember { mutableStateOf(false) }
     var showAdminMenu by remember { mutableStateOf(false) }
+    var accessScope by remember { mutableStateOf(WatchdogRepository.scope(context)) }
     var apps by remember { mutableStateOf(KioskAppRepository.getAllowedApps(context)) }
 
     val homeRoleLauncher = rememberLauncherForActivityResult(
@@ -82,7 +84,9 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
 
 
     LaunchedEffect(apps) {
-        KioskPolicyManager.updateLockTaskPackages(context, apps.map { it.packageName })
+        val packages = apps.map { it.packageName }
+        KioskPolicyManager.updateLockTaskPackages(context, packages)
+        WatchdogRepository.allowedPackages = packages.toSet()
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -184,8 +188,29 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
                 showAdminMenu = false
                 screen = KioskScreen.FTP_INSTALL
             },
+            accessGuardLabel = accessGuardLabel(accessScope),
+            onCycleAccessGuard = {
+                val next = when (accessScope) {
+                    WatchdogRepository.Scope.DISABLED -> WatchdogRepository.Scope.SETTINGS_ONLY
+                    WatchdogRepository.Scope.SETTINGS_ONLY -> WatchdogRepository.Scope.ALL_NON_ALLOWED
+                    WatchdogRepository.Scope.ALL_NON_ALLOWED -> WatchdogRepository.Scope.DISABLED
+                }
+                WatchdogRepository.setScope(context, next)
+                accessScope = next
+                Toast.makeText(context, "Protection d'accès : ${accessGuardLabel(next)}", Toast.LENGTH_SHORT).show()
+            },
+            onEnableAccessGuard = {
+                showAdminMenu = false
+                openSystemSettings(activity, context, Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            },
         )
     }
+}
+
+private fun accessGuardLabel(scope: WatchdogRepository.Scope): String = when (scope) {
+    WatchdogRepository.Scope.DISABLED -> "désactivée"
+    WatchdogRepository.Scope.SETTINGS_ONLY -> "Paramètres seulement"
+    WatchdogRepository.Scope.ALL_NON_ALLOWED -> "toutes les apps"
 }
 
 /**
