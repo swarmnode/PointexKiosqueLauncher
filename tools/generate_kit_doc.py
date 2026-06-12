@@ -113,9 +113,10 @@ def build(output: Path) -> None:
     pdf.section("Si le Device Owner est impossible (mode kiosque limité)")
     pdf.para("Certains appareils ne peuvent pas être configurés en Device Owner (compte Google indélébile, autre application propriétaire). L'application propose alors un mode dégradé :")
     pdf.step(1, "Sur l'écran « Configuration requise », touchez « Définir un code de verrouillage de l'appareil » et créez un code connu du technicien uniquement : sortir du kiosque exigera ce code.")
-    pdf.step(2, "Touchez « Configurer en mode kiosque limité ».")
-    pdf.step(3, "Acceptez la demande « Définir comme application d'accueil par défaut » : le bouton Accueil ramènera toujours au kiosque.")
-    pdf.para("En mode limité, les installations d'applications demandent une confirmation à l'écran et la protection repose sur l'épinglage + le code de verrouillage.")
+    pdf.step(2, "IMPORTANT - toujours dans Sécurité, touchez la roue dentée à côté de « Verrouillage de l'écran » puis réglez « Verrouiller automatiquement » sur « Jamais » et désactivez le verrouillage instantané par le bouton Marche/Arrêt. Sans cela, le code serait demandé à chaque réveil de l'écran ; ainsi il n'est demandé que pour sortir du kiosque (et une fois après un redémarrage complet).")
+    pdf.step(3, "Touchez « Configurer en mode kiosque limité ».")
+    pdf.step(4, "Acceptez la demande « Définir comme application d'accueil par défaut » : le bouton Accueil ramènera toujours au kiosque.")
+    pdf.para("En mode limité : les installations d'applications demandent une confirmation à l'écran, et au retour sur l'accueil du kiosque, Android demande de confirmer l'épinglage (« OK ») - c'est normal, ce mode ne permet pas l'épinglage silencieux.")
 
     pdf.section("Après la mise en service")
     pdf.step(1, "Au premier lancement, définissez le code PIN administrateur (4 ou 6 chiffres).")

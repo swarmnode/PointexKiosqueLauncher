@@ -31,6 +31,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.pointex.kiosklauncher.R
 import com.pointex.kiosklauncher.admin.KioskPolicyManager
 import com.pointex.kiosklauncher.data.KioskAppRepository
+import com.pointex.kiosklauncher.data.KioskModeRepository
 import com.pointex.kiosklauncher.data.PinRepository
 
 private enum class KioskScreen { PROVISIONING_REQUIRED, PIN_SETUP, HOME, FTP_INSTALL }
@@ -55,10 +56,12 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
     var screen by remember {
         mutableStateOf(
             when {
-                !KioskPolicyManager.isDeviceOwner(context) && !PinRepository.isPinSet(context) ->
+                PinRepository.isPinSet(context) -> KioskScreen.HOME
+
+                !KioskPolicyManager.isDeviceOwner(context) &&
+                    !KioskModeRepository.isLimitedModeChosen(context) ->
                     KioskScreen.PROVISIONING_REQUIRED
 
-                PinRepository.isPinSet(context) -> KioskScreen.HOME
                 else -> KioskScreen.PIN_SETUP
             }
         )
@@ -111,6 +114,9 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
                     openSystemSettings(activity, context, Settings.ACTION_SECURITY_SETTINGS)
                 },
                 onContinueAnyway = {
+                    // Persisted: granting the HOME role recreates the app,
+                    // which must not land back on the provisioning screen.
+                    KioskModeRepository.setLimitedModeChosen(context)
                     homeRoleRequestIntent(context)?.let { intent ->
                         // Screen pinning would block the system role dialog;
                         // unpin first, the next resume re-pins.
@@ -130,7 +136,17 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
 
             KioskScreen.HOME -> HomeScreen(
                 apps = apps,
-                onAppClick = { app -> context.startActivity(KioskAppRepository.launchIntentFor(app)) },
+                onAppClick = { app ->
+                    // In limited kiosk mode (no Device Owner), screen pinning
+                    // blocks the launched app's own internal navigation
+                    // ("Lock Task Mode violation"), so unpin first; the next
+                    // resume of the kiosk re-pins. As Device Owner the target
+                    // package is allowlisted and no unpin is needed.
+                    if (!KioskPolicyManager.isDeviceOwner(context)) {
+                        KioskPolicyManager.exitLockTask(activity)
+                    }
+                    context.startActivity(KioskAppRepository.launchIntentFor(app))
+                },
                 onAdminRequested = { showAdminDialog = true },
                 onInstallRequested = { screen = KioskScreen.FTP_INSTALL },
             )
