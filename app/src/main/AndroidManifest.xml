@@ -11,10 +11,13 @@
          (silent install is granted because this app is the device owner). -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Lets the app request package uninstall. As Device Owner uninstall is
-         silent; in limited mode this permission makes PackageInstaller.uninstall
-         return STATUS_PENDING_USER_ACTION (the system confirmation dialog)
-         instead of failing with a SecurityException. -->
+    <!-- Lets the app request package install/uninstall. As Device Owner both
+         are silent and need no permission; in limited mode these make the
+         system show its confirmation dialog instead of failing. Without
+         REQUEST_INSTALL_PACKAGES the install confirmation (packageinstaller)
+         aborts immediately ("needs to declare permission ...") and the
+         install never returns, hanging the UI on "installation en cours". -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 

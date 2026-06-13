@@ -1,5 +1,8 @@
 package com.pointex.kiosklauncher.ui
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -46,6 +49,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.pointex.kiosklauncher.admin.KioskPolicyManager
 import com.pointex.kiosklauncher.data.ApkInstaller
 import com.pointex.kiosklauncher.data.FtpCredentialsRepository
 import com.pointex.kiosklauncher.data.FtpResult
@@ -53,6 +57,7 @@ import com.pointex.kiosklauncher.data.KioskApp
 import com.pointex.kiosklauncher.data.KioskAppRepository
 import com.pointex.kiosklauncher.data.PointexApp
 import com.pointex.kiosklauncher.data.PointexSftpRepository
+import com.pointex.kiosklauncher.data.WatchdogRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -108,6 +113,25 @@ fun FtpInstallScreen(
     }
 
     suspend fun downloadAndInstall(app: PointexApp) {
+        // In limited mode the system requires "install unknown apps" to be
+        // granted to this launcher; without it the install confirmation
+        // aborts and the flow would hang. Check up front (before downloading)
+        // and send the technician to the right settings screen instead.
+        if (!KioskPolicyManager.isDeviceOwner(context) && !context.packageManager.canRequestPackageInstalls()) {
+            WatchdogRepository.temporarilyUnlocked = true
+            context.startActivity(
+                Intent(
+                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:${context.packageName}"),
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+            resultSuccess = false
+            resultMessage = "Autorisez ce lanceur à installer des applications " +
+                "(écran ouvert dans les Paramètres), puis réessayez."
+            step = FtpStep.RESULT
+            return
+        }
+
         step = FtpStep.INSTALLING
         val destFile = File(context.cacheDir, "pointex_install.apk")
         try {
