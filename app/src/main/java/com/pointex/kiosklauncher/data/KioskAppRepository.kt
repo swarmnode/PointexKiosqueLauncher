@@ -17,7 +17,23 @@ object KioskAppRepository {
      * Returns every launchable app whose package name matches one of the
      * allowed keywords, sorted alphabetically by display label.
      */
-    fun getAllowedApps(context: Context): List<KioskApp> {
+    fun getAllowedApps(context: Context): List<KioskApp> =
+        queryLaunchableApps(context) { packageName ->
+            ALLOWED_PACKAGE_KEYWORDS.any { keyword -> packageName.contains(keyword) }
+        }
+
+    /**
+     * Returns every launchable installed app (except this launcher itself),
+     * sorted alphabetically. Used by the code-protected admin "launch any
+     * app" screen, not by the kiosk home grid.
+     */
+    fun getAllLaunchableApps(context: Context): List<KioskApp> =
+        queryLaunchableApps(context) { true }
+
+    private fun queryLaunchableApps(
+        context: Context,
+        keep: (lowercasePackageName: String) -> Boolean,
+    ): List<KioskApp> {
         val packageManager = context.packageManager
         val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
@@ -32,8 +48,7 @@ object KioskAppRepository {
             .asSequence()
             .filter { resolveInfo ->
                 val packageName = resolveInfo.activityInfo.packageName.lowercase(Locale.ROOT)
-                packageName != context.packageName &&
-                    ALLOWED_PACKAGE_KEYWORDS.any { keyword -> packageName.contains(keyword) }
+                packageName != context.packageName && keep(packageName)
             }
             .map { resolveInfo ->
                 KioskApp(

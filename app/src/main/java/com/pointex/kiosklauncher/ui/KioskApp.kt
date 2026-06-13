@@ -35,7 +35,7 @@ import com.pointex.kiosklauncher.data.KioskAppRepository
 import com.pointex.kiosklauncher.data.KioskModeRepository
 import com.pointex.kiosklauncher.data.WatchdogRepository
 
-private enum class KioskScreen { PROVISIONING_REQUIRED, HOME, FTP_INSTALL }
+private enum class KioskScreen { PROVISIONING_REQUIRED, HOME, FTP_INSTALL, APP_LAUNCHER }
 
 /**
  * Single-screen, state-driven root composable.
@@ -159,6 +159,20 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
                     screen = KioskScreen.HOME
                 },
             )
+
+            KioskScreen.APP_LAUNCHER -> AppLauncherScreen(
+                apps = remember { KioskAppRepository.getAllLaunchableApps(context) },
+                onAppClick = { app ->
+                    // The admin authenticated to reach here: release lock-task
+                    // (Device Owner) and exempt the watchdog (limited mode) so
+                    // the chosen app can run; both re-arm on the next resume.
+                    WatchdogRepository.temporarilyUnlocked = true
+                    KioskPolicyManager.exitLockTask(activity)
+                    context.startActivity(KioskAppRepository.launchIntentFor(app))
+                    screen = KioskScreen.HOME
+                },
+                onClose = { screen = KioskScreen.HOME },
+            )
         }
     }
 
@@ -194,6 +208,10 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
             onManageApps = {
                 showAdminMenu = false
                 screen = KioskScreen.FTP_INSTALL
+            },
+            onLaunchApp = {
+                showAdminMenu = false
+                screen = KioskScreen.APP_LAUNCHER
             },
             accessGuardLabel = accessGuardLabel(accessScope),
             onCycleAccessGuard = {

@@ -21,6 +21,7 @@ fun AdminMenuDialog(
     onOpenWifiSettings: () -> Unit,
     onOpenSimSettings: () -> Unit,
     onManageApps: () -> Unit,
+    onLaunchApp: () -> Unit,
     accessGuardLabel: String,
     onCycleAccessGuard: () -> Unit,
     onEnableAccessGuard: () -> Unit,
@@ -34,6 +35,9 @@ fun AdminMenuDialog(
             Column {
                 TextButton(onClick = onManageApps, modifier = Modifier.fillMaxWidth()) {
                     Text("Gérer les applications Pointex")
+                }
+                TextButton(onClick = onLaunchApp, modifier = Modifier.fillMaxWidth()) {
+                    Text("Lancer une application")
                 }
                 TextButton(onClick = onOpenWifiSettings, modifier = Modifier.fillMaxWidth()) {
                     Text("Wi-Fi (adresse IP fixe)")
