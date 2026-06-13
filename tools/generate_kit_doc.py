@@ -134,7 +134,7 @@ def build(output: Path) -> None:
 
     pdf.section("Après la mise en service")
     pdf.step(1, "Installez les applications Pointex : bouton « Installer une application Pointex » (serveur SFTP, identifiants pré-remplis).")
-    pdf.step(2, "Accès administrateur : appui long dans le coin inférieur droit de l'écran d'accueil. L'écran affiche un nombre à 5 chiffres ; saisissez le code de réponse correspondant, calculé selon la règle interne (communiquée séparément aux techniciens). Le menu permet de gérer les applications, le Wi-Fi (IP fixe), la carte SIM et les Paramètres.")
+    pdf.step(2, "Accès administrateur : appui long dans le coin inférieur droit de l'écran d'accueil. L'écran affiche un nombre à 5 chiffres ; saisissez le code de réponse correspondant, calculé selon la règle interne (communiquée séparément aux techniciens). Le menu permet de gérer les applications, lancer une application installée, le Wi-Fi (IP fixe), la carte SIM et les Paramètres.")
     pdf.para("Après 5 codes erronés, la saisie est bloquée 30 secondes.")
     pdf.para("Au démarrage de l'appareil, si une seule application Pointex est installée, elle se lance automatiquement (une fois par démarrage : revenir à l'accueil du kiosque reste possible).")
 
