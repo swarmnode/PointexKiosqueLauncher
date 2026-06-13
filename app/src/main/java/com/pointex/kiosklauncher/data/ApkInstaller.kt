@@ -39,6 +39,20 @@ object ApkInstaller {
             val packageInstaller = context.packageManager.packageInstaller
             val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
 
+            // Allow installing an older versionCode over a newer one. Only
+            // honoured for Device Owner; otherwise the system still blocks the
+            // downgrade (handled with a clear message below) and the technician
+            // must uninstall first.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                try {
+                    PackageInstaller.SessionParams::class.java
+                        .getMethod("setRequestDowngrade", Boolean::class.javaPrimitiveType)
+                        .invoke(params, true)
+                } catch (_: Exception) {
+                    // Hidden API unavailable on this device; ignore.
+                }
+            }
+
             val sessionId: Int
             try {
                 sessionId = packageInstaller.createSession(params)
@@ -75,7 +89,7 @@ object ApkInstaller {
                                     if (status == PackageInstaller.STATUS_SUCCESS) {
                                         true to "Installation réussie"
                                     } else {
-                                        false to (message?.takeIf { it.isNotBlank() } ?: "Échec de l'installation")
+                                        false to friendlyInstallError(message)
                                     }
                                 )
                             }
@@ -181,6 +195,20 @@ object ApkInstaller {
                 }
             }
         }
+
+    /** Maps a raw PackageInstaller status message to a French, user-facing message. */
+    private fun friendlyInstallError(message: String?): String = when {
+        message == null -> "Échec de l'installation"
+        message.contains("DOWNGRADE", ignoreCase = true) ->
+            "Version plus ancienne que celle installée. Pour revenir en arrière, " +
+                "désinstallez d'abord l'application (les données seront perdues)."
+        message.contains("INCONSISTENT", ignoreCase = true) ||
+            message.contains("signature", ignoreCase = true) ->
+            "Signature incompatible avec la version installée. Désinstallez d'abord " +
+                "l'application avant d'installer celle-ci."
+        message.isBlank() -> "Échec de l'installation"
+        else -> message
+    }
 
     /** Extracts the system confirmation intent from a `STATUS_PENDING_USER_ACTION` broadcast. */
     private fun confirmIntentOf(intent: Intent): Intent? =
