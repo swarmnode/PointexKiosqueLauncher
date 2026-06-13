@@ -30,6 +30,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.pointex.kiosklauncher.R
 import com.pointex.kiosklauncher.admin.KioskPolicyManager
+import com.pointex.kiosklauncher.data.BootLaunchRepository
 import com.pointex.kiosklauncher.data.KioskAppRepository
 import com.pointex.kiosklauncher.data.KioskModeRepository
 import com.pointex.kiosklauncher.data.WatchdogRepository
@@ -128,6 +129,12 @@ fun KioskApp(activity: ComponentActivity, modifier: Modifier = Modifier) {
                     // Persisted: granting the HOME role recreates the app,
                     // which must not land back on the provisioning screen.
                     KioskModeRepository.setLimitedModeChosen(context)
+                    // Suppress the boot auto-launch for this setup pass: each
+                    // return from the admin/role system dialogs fires onResume,
+                    // which would otherwise auto-launch the Pointex app and
+                    // cover the HOME-role request before it can be granted.
+                    // Marking it now defers auto-launch to the next real boot.
+                    BootLaunchRepository.markAutoLaunched(context)
                     val adminIntent = KioskPolicyManager.addAdminIntent(context)
                     if (adminIntent != null) {
                         adminLauncher.launch(adminIntent) // requestHomeRole() on return
